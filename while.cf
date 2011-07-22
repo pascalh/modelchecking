@@ -1,0 +1,17 @@
+entrypoints Program, Stmts, Stmt, BExp ;
+
+Program. Program::= "prog" Stmts "end";
+
+Stmts. Stmts    ::= Stmt Stmts;
+StmtsE. Stmts   ::= Stmt;
+
+SWhile. Stmt    ::= "while" BExp "do" Stmts "end";
+SIf. Stmt       ::= "if" BExp "then" Stmts "fi";
+SDecl. Stmt     ::= "var" Ident ";";
+SAssign.Stmt    ::= Ident "::=" BExp ";";
+
+BTrue. BExp    ::= "true";
+BFalse.BExp    ::= "false";
+BConj.BExp     ::= "(" BExp "&&" BExp ")";
+BDisj.BExp     ::= "(" BExp "||" BExp ")";
+BNeg.BExp      ::= "not" "(" BExp ")";
