@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses , TypeSynonymInstances , FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses , TypeSynonymInstances , FlexibleInstances, FlexibleContexts , TypeFamilies#-}
 
 module Cfg where
 import Language.While.Abswhile
@@ -76,7 +76,7 @@ stmtToCfgOut s gr = let n = head $ newNodes 1 gr in case s of
   (SWhile _ ss)         -> 
     let (a,gr1,b) = stmtsToCfg ss gr in (a,insEdge (b,a,()) gr1,b)
 
--- * using state monad and adding explicit starting and ending states
+-- * define a datatype which contains the transformation functions 
 
 data CfgNode a = Initial
              | Terminal 
@@ -84,38 +84,62 @@ data CfgNode a = Initial
              | Tag String -- ^ just a description of a node (won't be processed later on)
              deriving Show 
 
+{-
+data family NN a c 
+data instance NN Program cfgnode = WhileCfgNode1
+  { program122 :: Program -> (CfgNode cfgnode)
+  , stmts1   :: Stmts   -> (CfgNode cfgnode)
+  , stmt1    :: Stmt    -> (CfgNode cfgnode)
+  , bexp1    :: BExp    -> (CfgNode cfgnode)
+  }
+-}
+
+-- |data type for defining cfg-node-label-creations
+data WhileCfgNode cfgnode 
+  = WhileCfgNode 
+  { program :: Program -> CfgNode cfgnode
+  , stmts   :: Stmts   -> CfgNode cfgnode
+  , stmt    :: Stmt    -> CfgNode cfgnode
+  , bexp    :: BExp    -> CfgNode cfgnode
+  }
+
+vars :: WhileCfgNode Varops
+vars = WhileCfgNode toCfgNode toCfgNode toCfgNode toCfgNode 
 
 class TonNode a b where
   toCfgNode :: a -> CfgNode b
 
 class Foo a b where
-  getCfg :: (TonNode Stmt b, TonNode Stmts b) => a -> Gr (CfgNode b) ()
-  getCfg p = toCfg undefined p undefined undefined
+  getCfg :: WhileCfgNode b -> a -> Gr (CfgNode b) ()
+  getCfg v p = toCfg v undefined p undefined undefined
 
-  toCfg :: (TonNode Stmts b,TonNode Stmt b) => Int -> a -> Int -> Gr (CfgNode b) () -> Gr (CfgNode b) ()
+  toCfg :: WhileCfgNode b -> Int -> a -> Int -> Gr (CfgNode b) () -> Gr (CfgNode b) ()
 
 instance Foo Program b where
-  toCfg _ (Program ss) _ _ =   
+  toCfg v _ (Program ss) _ _ =   
     let g     = empty 
         [i,t] = newNodes 2 g
         h     = insNode (t,Terminal) $ insNode (i,Initial) g
-    in toCfg i ss t h
+    in toCfg v i ss t h
 
-instance TonNode Program Varops where
-  toCfgNode _ = Tag []
 
 instance Foo Stmts b where
-  toCfg i (StmtsE s  ) t g = toCfg i s t g
-  toCfg i (Stmts s ss) t g = 
+  toCfg v i (StmtsE s  ) t g = toCfg v i s t g
+  toCfg v i (Stmts s ss) t g = 
     let b = head $ newNodes 1 g in 
-      toCfg b ss t $ toCfg i s b $ insNode (b,Tag []) g
+      toCfg v b ss t $ toCfg v i s b $ insNode (b,Tag []) g
 
 instance Foo Stmt b where
-  toCfg i s t g = 
+  toCfg v i s t g = 
     case s of
-      (SIf _ _)    -> insCond i t s g
-      (SWhile _ _) -> insCond i t s g
-      _            -> insBetween i t (toCfgNode s) g
+      (SIf _ _)    -> insCond v i t s g
+      (SWhile _ _) -> insCond v i t s g
+      _            -> insBetween i t (stmt v $ s) g
+
+
+-- cfgnodes: a -> Varops
+instance TonNode Program Varops where
+  toCfgNode _ = Tag []
 
 instance TonNode Stmt Varops where
   toCfgNode (SDecl (Ident i))     = Value $ Decl i
@@ -125,38 +149,49 @@ instance TonNode Stmt Varops where
 
 instance TonNode Stmts Varops where
   toCfgNode _ = Tag []
+
+instance TonNode BExp Varops where
+  toCfgNode _ = Tag []
   
 
-insCond :: (TonNode Stmt b,TonNode Stmts b) 
-        => Node -> Node -> Stmt -> Gr (CfgNode b) () -> Gr (CfgNode b) ()
-insCond i t s@(SWhile _ ss) g =     
+
+insCond :: WhileCfgNode b -> Node -> Node -> Stmt 
+        -> Gr (CfgNode b) () -> Gr (CfgNode b) ()
+insCond v i t s@(SWhile _ ss) g =     
   let [x,y] = newNodes 2 g
       h = insEdge (y,x,()) 
         $ insEdge (x,y,()) 
         $ insEdge (i,x,()) 
         $ insEdge (y,t,()) 
-        $ insNode (x,toCfgNode s) 
-        $ insNode (y,toCfgNode s) g
-  in toCfg x ss y h
+        $ insNode (x,stmt v $ s) 
+        $ insNode (y,stmt v $ s) g
+  in toCfg v x ss y h
 
-insCond i t s@(SIf _ ss) g =     
+insCond v i t s@(SIf _ ss) g =     
   let [x,y] = newNodes 2 g
       h = insEdge (x,y,()) 
         $ insEdge (i,x,()) 
         $ insEdge (y,t,()) 
-        $ insNode (x,toCfgNode s) 
-        $ insNode (y,toCfgNode s) g
-  in toCfg x ss y h
+        $ insNode (x,stmt v $ s) 
+        $ insNode (y,stmt v $ s) g
+  in toCfg v x ss y h
 
 
 -- simple inserting nodes
-insBetween :: Node -> Node -> CfgNode a -> Gr (CfgNode a) () -> Gr (CfgNode a) ()
+insBetween :: Node -> Node -> CfgNode a 
+           -> Gr (CfgNode a) () -> Gr (CfgNode a) ()
 insBetween i t v g = 
   let n = head $ newNodes 1 g in
   insEdge (i,n,()) $ insEdge (n,t,()) $ insNode (n,v) g
 
-
-
+-- * pruning the cfg: doesnt work properly 
+prune :: Gr (CfgNode a) () -> Gr (CfgNode a) () 
+prune g 
+  | isEmpty g = g
+  | otherwise = let (c@(preds,_,_,succs),g') = matchAny g in
+      case (preds,succs) of
+        ([(_,p)],[(_,s)]) -> prune $ insEdge (p,s,()) g'
+        _                 -> c & prune g'
 
 -- * creating simple graphs
 
@@ -215,12 +250,12 @@ emptyState = CfgState g i t where
 
 test :: IO ()
 test = mapM_ 
-  (\x -> let cfg = (toControlFlowGraph::Program -> Gr (CfgNode String) ())x in 
+  (\x -> let cfg = (getCfg::WhileCfgNode Varops -> Program -> Gr (CfgNode Varops) ())vars x in 
     putStrLn "----" >> print ( pretty x) >> print cfg) 
-  [program,program1,program2,program3,program4,program5]
+  [program6,program1,program2,program3,program4,program5]
 
-program :: Program
-program = read "prog var i ; i ::= true ; var h ; i::= false ;  end" 
+program6 :: Program
+program6 = read "prog var i ; i ::= true ; var h ; i::= false ;  end" 
 
 program1 :: Program
 program1 = read $ 
