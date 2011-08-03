@@ -17,3 +17,17 @@ insEdgeUnique (u,v,l) g | elem v (suc g u) = g
 -- |returns all node labels of a graph
 nodeLabels :: Graph g => g a b -> [a]
 nodeLabels g = mapMaybe (lab g) (nodes g) 
+
+-- |returns the unique node without any preceding nodes if existing
+treeRoot :: Graph g => g a b -> Node
+treeRoot g = case roots g of
+  [n] -> n
+  _   -> error "treeRoot: input graph does not have a unique root" 
+
+-- |returns all nodes without a predecessor
+roots :: Graph g => g a b -> [Node]
+roots g = concatMap (\n -> if null $ pre g n then return n else []) $ nodes g
+
+-- |returns all nodes without a successor
+leafs :: Graph g => g a b -> [Node]
+leafs g = concatMap (\n -> if null $ suc g n then return n else []) $ nodes g 
