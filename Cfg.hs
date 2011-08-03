@@ -121,7 +121,7 @@ instance Foo Program b where
   toCfg v _ (Program ss) _ _ =   
     let g     = empty 
         [i,t] = newNodes 2 g
-        h     = insNode (t,Terminal) $ insNode (i,Initial) g
+        h     = insNodes [(t,Terminal),(i,Initial)] g
     in toCfg v i ss t h
 
 
@@ -161,21 +161,14 @@ insCond :: WhileCfgNode b -> Node -> Node -> Stmt
         -> Gr (CfgNode b) () -> Gr (CfgNode b) ()
 insCond v i t s@(SWhile _ ss) g =     
   let [x,y] = newNodes 2 g
-      h = insEdge (y,x,()) 
-        $ insEdge (x,y,()) 
-        $ insEdge (i,x,()) 
-        $ insEdge (y,t,()) 
-        $ insNode (x,stmt v $ s) 
-        $ insNode (y,stmt v $ s) g
+      h = insEdges [(y,x,()),(x,y,()),(i,x,()),(y,t,())]  
+        $ insNodes [(x,stmt v s),(y,stmt v s)] g 
   in toCfg v x ss y h
 
 insCond v i t s@(SIf _ ss) g =     
   let [x,y] = newNodes 2 g
-      h = insEdge (x,y,()) 
-        $ insEdge (i,x,()) 
-        $ insEdge (y,t,()) 
-        $ insNode (x,stmt v $ s) 
-        $ insNode (y,stmt v $ s) g
+      h = insEdges [(x,y,()),(i,x,()),(y,t,())]  
+        $ insNodes [(x,stmt v s),(y,stmt v s)] g 
   in toCfg v x ss y h
 
 
