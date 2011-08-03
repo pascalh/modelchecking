@@ -1,8 +1,23 @@
-module DataToGraph(dataToGraph) where
+module DataToGraph(dataToGraph,dataToKripkeGraph) where
 import Data.Graph.Inductive
 import Data.Tree
 import Data.Data
 import Data.Generics.Aliases
+
+import Kripke 
+import GraphUtil
+
+dataToKripkeGraph :: Data a => a -> KripkeGr String
+dataToKripkeGraph ast = 
+  let g = nmap Value $ dataToGraph ast
+      n = head $ newNodes 1 g 
+      r = treeRoot g
+      ls= leafs g in
+  KripkeGr $
+  insEdges (map (\l -> (l,l,())) ls) $ 
+  insEdge (n,r,()) $ 
+  insNode (n,Initial) g 
+
 
 dataToGraph :: Data a => a -> Gr String ()
 dataToGraph = treeToGraph . dataToTree
