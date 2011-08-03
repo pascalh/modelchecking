@@ -6,6 +6,8 @@ import Language.While.ErrM
 import Language.While.Parwhile
 import Data.Graph.Inductive
 
+import Kripke
+import GraphUtil
 import Control.Arrow (first)
 import Data.Maybe (fromJust)
 
@@ -13,32 +15,26 @@ data Varops = Decl String | Read String | Write String deriving (Show)
 
 -- * define a datatype which contains the transformation functions 
 
-data CfgNode a = Initial
-             | Terminal 
-             | Value a -- ^ a node for values which matter
-             | Tag String -- ^ just a description of a node (won't be processed later on)
-             deriving Show 
-
 -- |data type for defining cfg-node-label-creations
-data WhileCfgNode cfgnode 
-  = WhileCfgNode 
-  { program :: Program -> CfgNode cfgnode
-  , stmts   :: Stmts   -> CfgNode cfgnode
-  , stmt    :: Stmt    -> CfgNode cfgnode
-  , bexp    :: BExp    -> CfgNode cfgnode
+data WhileKripkeNode k 
+  = WhileKripkeNode 
+  { program :: Program -> KripkeNode k
+  , stmts   :: Stmts   -> KripkeNode k
+  , stmt    :: Stmt    -> KripkeNode k
+  , bexp    :: BExp    -> KripkeNode k
   }
 
-vars :: WhileCfgNode Varops
-vars = WhileCfgNode toCfgNode toCfgNode toCfgNode toCfgNode 
+vars :: WhileKripkeNode Varops
+vars = WhileKripkeNode toKripkeNode toKripkeNode toKripkeNode toKripkeNode 
 
 class TonNode a b where
-  toCfgNode :: a -> CfgNode b
+  toKripkeNode :: a -> KripkeNode b
 
 class Foo a b where
-  getCfg :: WhileCfgNode b -> a -> Gr (CfgNode b) ()
+  getCfg :: WhileKripkeNode b -> a -> Gr (KripkeNode b) ()
   getCfg v p = toCfg v undefined p undefined undefined
 
-  toCfg :: WhileCfgNode b -> Int -> a -> Int -> Gr (CfgNode b) () -> Gr (CfgNode b) ()
+  toCfg :: WhileKripkeNode b -> Int -> a -> Int -> Gr (KripkeNode b) () -> Gr (KripkeNode b) ()
 
 instance Foo Program b where
   toCfg v _ (Program ss) _ _ =   
@@ -62,26 +58,26 @@ instance Foo Stmt b where
       _            -> insBetween i t (stmt v $ s) g
 
 
--- cfgnodes: a -> Varops
+-- ks: a -> Varops
 instance TonNode Program Varops where
-  toCfgNode _ = Tag []
+  toKripkeNode _ = Tag []
 
 instance TonNode Stmt Varops where
-  toCfgNode (SDecl (Ident i))     = Value $ Decl i
-  toCfgNode (SAssign (Ident i) _) = Value $ Write i
-  toCfgNode (SWhile _ _)          = Tag "While"
-  toCfgNode (SIf _ _)             = Tag "If"
+  toKripkeNode (SDecl (Ident i))     = Value $ Decl i
+  toKripkeNode (SAssign (Ident i) _) = Value $ Write i
+  toKripkeNode (SWhile _ _)          = Tag "While"
+  toKripkeNode (SIf _ _)             = Tag "If"
 
 instance TonNode Stmts Varops where
-  toCfgNode _ = Tag []
+  toKripkeNode _ = Tag []
 
 instance TonNode BExp Varops where
-  toCfgNode _ = Tag []
+  toKripkeNode _ = Tag []
   
 
 
-insCond :: WhileCfgNode b -> Node -> Node -> Stmt 
-        -> Gr (CfgNode b) () -> Gr (CfgNode b) ()
+insCond :: WhileKripkeNode b -> Node -> Node -> Stmt 
+        -> Gr (KripkeNode b) () -> Gr (KripkeNode b) ()
 insCond v i t s@(SWhile _ ss) g =     
   let [x,y] = newNodes 2 g
       h = insEdges [(y,x,()),(x,y,()),(i,x,()),(y,t,())]  
@@ -96,8 +92,8 @@ insCond v i t s@(SIf _ ss) g =
 
 
 -- simple inserting nodes
-insBetween :: Node -> Node -> CfgNode a 
-           -> Gr (CfgNode a) () -> Gr (CfgNode a) ()
+insBetween :: Node -> Node -> KripkeNode a 
+           -> Gr (KripkeNode a) () -> Gr (KripkeNode a) ()
 insBetween i t v g = 
   let n = head $ newNodes 1 g in
   insEdge (i,n,()) $ insEdge (n,t,()) $ insNode (n,v) g
@@ -105,31 +101,19 @@ insBetween i t v g =
 -- * pruning the cfg: doesnt work properly 
 
 -- |removes all empty tags from given graph
-prune :: DynGraph g => g (CfgNode a) () -> g (CfgNode a) ()
+prune :: DynGraph g => g (KripkeNode a) () -> g (KripkeNode a) ()
 prune g = prune' (nodes g) g where
   prune' []     g = g
-  prune' (n:ns) g = let ((_,_,l,_),g') = first fromJust $ match n g in 
+  prune' (n:ns) g = let ((_,_,l,_),_) = first fromJust $ match n g in 
     case l of
       Tag "" ->  prune' ns (removeNode n g)
       _     ->  prune' ns g
   
--- |removes a given node from graph, but forwards all edges from pres to succs
-removeNode :: DynGraph gr => Node -> gr a () -> gr a ()
-removeNode n g = delNode n $ 
-  foldr (\(p,s) g -> insEdgeUnique (p,s,()) g) g 
-    [(p,s) | p<- pre g n, s <- suc g n] 
-
--- |like insEdge, but does not insert multiple edges between two nodes
-insEdgeUnique :: DynGraph gr => LEdge b -> gr a b -> gr a b
-insEdgeUnique (u,v,l) g | elem v (suc g u) = g
-                        | otherwise        = insEdge (u,v,l) g
-
-
 -- * testing values
 
 test :: IO ()
 test = mapM_ 
-  (\x -> let cfg = prune $ (getCfg::WhileCfgNode Varops -> Program -> Gr (CfgNode Varops) ())vars x in 
+  (\x -> let cfg = prune $ (getCfg::WhileKripkeNode Varops -> Program -> Gr (KripkeNode Varops) ())vars x in 
     putStrLn "----" >> print ( pretty x) >> print cfg) 
   [program6,program1,program2,program3,program4,program5]
 
