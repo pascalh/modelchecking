@@ -6,6 +6,7 @@ import Language.While.ErrM
 import Language.While.Parwhile
 import Data.Graph.Inductive
 
+import Test.QuickCheck
 import WhileMisc
 import Kripke
 import GraphUtil
@@ -149,3 +150,8 @@ program5 :: Program
 program5 = read 
   "prog var i ; i ::= true ; var h ; if false then i::= false ; var g ; fi var f; end"  
 
+
+test3 :: IO ()
+test3 = do
+  p <- sample' (arbitrary::Gen Program)
+  mapM_ (\p -> putStrLn "----" >> print (pretty p) >> print (dataToKripkeGraph p)) $ take 7 p
