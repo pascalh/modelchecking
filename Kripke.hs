@@ -20,7 +20,7 @@ class Kripke k where
   labels :: State -> k l -> [l] -- ^ state labeling function
 
 -- |a wrapper for graphs containing cfgnodes
-newtype KripkeGr a = KripkeGr {graph :: Gr (KripkeNode a) ()}
+newtype KripkeGr a = KripkeGr {graph :: Gr (KripkeNode a) ()} deriving Show
 
 instance Kripke KripkeGr where
   type State = Node
