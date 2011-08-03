@@ -19,16 +19,6 @@ data CfgNode a = Initial
              | Tag String -- ^ just a description of a node (won't be processed later on)
              deriving Show 
 
-{-
-data family NN a c 
-data instance NN Program cfgnode = WhileCfgNode1
-  { program122 :: Program -> (CfgNode cfgnode)
-  , stmts1   :: Stmts   -> (CfgNode cfgnode)
-  , stmt1    :: Stmt    -> (CfgNode cfgnode)
-  , bexp1    :: BExp    -> (CfgNode cfgnode)
-  }
--}
-
 -- |data type for defining cfg-node-label-creations
 data WhileCfgNode cfgnode 
   = WhileCfgNode 
