@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies , MultiParamTypeClasses , TypeSynonymInstances #-}
 module Kripke where
-import Data.Graph.Inductive
+import Data.Graph.Inductive hiding (suc,pre)
 import Data.Maybe (mapMaybe)
 
 -- |we distingiush between four kinds of nodes in a kripke structure
@@ -17,6 +17,12 @@ class Kripke k s where
   initStates :: k l -> [s] -- ^ initial states 
   rel :: s -> s -> k l -> Bool -- ^ transition relation
   labels :: s -> k l -> [l] -- ^ state labeling function
+
+  pre :: k l -> s -> [s] -- ^finds predecessor nodes
+  pre k s = [s'|s'<-states k, rel s' s k]
+
+  suc :: k l -> s -> [s] -- ^ finds successor nodes
+  suc k s = [s'|s' <- states k,rel s s' k]
 
 -- |a wrapper for graphs containing cfgnodes
 newtype KripkeGr a = KripkeGr {graph :: Gr (KripkeNode a) ()} deriving Show
