@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses , TypeSynonymInstances , FlexibleInstances, FlexibleContexts , TypeFamilies#-}
+{-# LANGUAGE MultiParamTypeClasses , TypeSynonymInstances , FlexibleInstances, FlexibleContexts , TypeFamilies #-}
 
 module Cfg where
 import Language.While.Abswhile
@@ -6,8 +6,10 @@ import Language.While.ErrM
 import Language.While.Parwhile
 import Data.Graph.Inductive
 
+import WhileMisc
 import Kripke
 import GraphUtil
+import DataToGraph
 import Control.Arrow (first)
 import Data.Maybe (fromJust)
 
@@ -115,7 +117,12 @@ test :: IO ()
 test = mapM_ 
   (\x -> let cfg = prune $ (getCfg::WhileKripkeNode Varops -> Program -> Gr (KripkeNode Varops) ())vars x in 
     putStrLn "----" >> print ( pretty x) >> print cfg) 
-  [program6,program1,program2,program3,program4,program5]
+    programs 
+
+test2 :: IO ()
+test2 = mapM_ (\p -> putStrLn "----" >> print (pretty p) >> print (dataToKripkeGraph p)) programs
+
+programs =[program6,program1,program2,program3,program4,program5] 
 
 program6 :: Program
 program6 = read "prog var i ; i ::= true ; var h ; i::= false ;  end" 
@@ -141,36 +148,4 @@ program4 = read "prog var i ; i ::= true ; var h ; if false then i::= false ; va
 program5 :: Program
 program5 = read 
   "prog var i ; i ::= true ; var h ; if false then i::= false ; var g ; fi var f; end"  
-
-
--- * should be "global"
-
-instance Read Program where
-  readsPrec _ s = 
-    case pProgram $ myLexer s of
-      Ok ast -> [(ast,[])]
-      Bad _  -> []
-
-class Pretty a where
-  pretty :: a -> String
-
-instance Pretty Program where
-  pretty (Program ss) = "prog "++pretty ss++" end"
-
-instance Pretty Stmts where
-  pretty (Stmts s ss) = pretty s ++ " "++ pretty ss
-  pretty (StmtsE s)   = pretty s
-
-instance Pretty Stmt where
-  pretty (SWhile b s) = "while "++pretty b++" do "++pretty s++" end "
-  pretty (SIf b s) = "if "++pretty b++" then "++pretty s++" fi "
-  pretty (SDecl (Ident s)) = "var "++s++" ; "
-  pretty (SAssign (Ident s) b) = s++" ::= " ++pretty b++" ; "
-
-instance Pretty BExp where
-  pretty BTrue = "true"
-  pretty BFalse = "false"
-  pretty (BConj b1 b2) = "("++pretty b1++" && "++pretty b2++")"
-  pretty (BDisj b1 b2) = "("++pretty b1++" || "++pretty b2++")"
-  pretty (BNeg b) = "not("++pretty b++")"
 
