@@ -7,6 +7,8 @@ import Language.While.Parwhile
 import Data.Graph.Inductive
 import Data.Graph.Inductive.Graphviz
 
+import Control.Arrow (first)
+import Data.Maybe (fromJust)
 import Control.Monad.State
 
 import Data.Tree
@@ -185,19 +187,32 @@ insBetween i t v g =
   insEdge (i,n,()) $ insEdge (n,t,()) $ insNode (n,v) g
 
 -- * pruning the cfg: doesnt work properly 
-prune :: Gr (CfgNode a) () -> Gr (CfgNode a) () 
-prune g 
-  | isEmpty g = g
-  | otherwise = let (c@(preds,_,_,succs),g') = matchAny g in
-      case (preds,succs) of
-        ([(_,p)],[(_,s)]) -> prune $ insEdge (p,s,()) g'
-        _                 -> c & prune g'
+
+-- |removes all empty tags from given graph
+prune :: DynGraph g => g (CfgNode a) () -> g (CfgNode a) ()
+prune g = prune' (nodes g) g where
+  prune' []     g = g
+  prune' (n:ns) g = let ((_,_,l,_),g') = first fromJust $ match n g in 
+    case l of
+      Tag "" ->  prune' ns (removeNode n g)
+      _     ->  prune' ns g
+  
+-- |removes a given node from graph, but forwards all edges from pres to succs
+removeNode :: DynGraph gr => Node -> gr a () -> gr a ()
+removeNode n g = delNode n $ 
+  foldr (\(p,s) g -> insEdgeUnique (p,s,()) g) g 
+    [(p,s) | p<- pre g n, s <- suc g n] 
+
+-- |like insEdge, but does not insert multiple edges between two nodes
+insEdgeUnique :: DynGraph gr => LEdge b -> gr a b -> gr a b
+insEdgeUnique (u,v,l) g | elem v (suc g u) = g
+                        | otherwise        = insEdge (u,v,l) g
 
 -- * gehackt und so -> klappt nicht
 
 data CfgState a = 
   CfgState { graph :: Gr (CfgNode a) () 
-           , pre :: Int 
+           , pre1 :: Int 
            , post :: Int } 
   deriving Show 
 -- |klappt nicht!!! -> zipper?
@@ -231,7 +246,7 @@ emptyState = CfgState g i t where
 
 test :: IO ()
 test = mapM_ 
-  (\x -> let cfg = (getCfg::WhileCfgNode Varops -> Program -> Gr (CfgNode Varops) ())vars x in 
+  (\x -> let cfg = prune $ (getCfg::WhileCfgNode Varops -> Program -> Gr (CfgNode Varops) ())vars x in 
     putStrLn "----" >> print ( pretty x) >> print cfg) 
   [program6,program1,program2,program3,program4,program5]
 
