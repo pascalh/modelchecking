@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies , MultiParamTypeClasses , TypeSynonymInstances #-}
 module Kripke where
 import Data.Graph.Inductive
 import Data.Maybe (mapMaybe)
@@ -12,19 +12,16 @@ data KripkeNode a
   deriving Show 
 
 -- |an interface for kripke structures
-class Kripke k where
-  type State
-  states :: k l -> [State] -- ^ all states
-  initStates :: k l -> [State] -- ^ initial states 
-  rel :: State -> State -> k l -> Bool -- ^ transition relation
-  labels :: State -> k l -> [l] -- ^ state labeling function
+class Kripke k s where
+  states :: k l -> [s] -- ^ all states
+  initStates :: k l -> [s] -- ^ initial states 
+  rel :: s -> s -> k l -> Bool -- ^ transition relation
+  labels :: s -> k l -> [l] -- ^ state labeling function
 
 -- |a wrapper for graphs containing cfgnodes
 newtype KripkeGr a = KripkeGr {graph :: Gr (KripkeNode a) ()} deriving Show
 
-instance Kripke KripkeGr where
-  type State = Node
-
+instance Kripke KripkeGr Node where
   states (KripkeGr g) = Data.Graph.Inductive.nodes g
 
   initStates (KripkeGr g) = mapMaybe (f . flip match g) (nodes g) where
