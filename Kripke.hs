@@ -9,7 +9,13 @@ data KripkeNode a
   | Terminal -- ^ optional but useful for control flow graphs
   | Value {value :: a } -- ^ values are processed by our algorithms
   | Tag {tag :: String } -- ^ tags are only used for output
-  deriving Show 
+  deriving (Eq,Ord)
+
+instance Show a => Show (KripkeNode a) where
+  show Initial = "Initial"
+  show Terminal= "Terminal"
+  show (Value v) = show v
+  show (Tag t)   = "Tag "++show t
 
 -- |an interface for kripke structures
 class Kripke k s where
