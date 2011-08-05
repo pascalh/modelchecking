@@ -5,58 +5,71 @@ import Data.Maybe (mapMaybe)
 import Control.Applicative
 import Data.List ((\\))
 
+-- | We use @Int@s to uniquely identify a state in a kripke structure.
+-- Minimal definition: 'states','initStates','rel','labels','empty',
+-- 'addState', 'addInitState', 'addRel' and 'addLabel'.
 type KripkeState = Int
 
--- |an interface for kripke structures. We use @Int@s to uniquely identify
--- a state in a kripke structure
+-- |A interface for kripke structures. Errors are thrown if already existing
+-- nodes are inserted.
 class Kripke k where
-  states :: k l -> [KripkeState] -- ^ all states
-  initStates :: k l -> [Int] -- ^ initial states 
-  rel :: KripkeState -> KripkeState -> k l -> Bool -- ^ transition relation
-  labels :: KripkeState -> k l -> [l] -- ^ state labeling function
+  -- |all states
+  states :: k l -> [KripkeState] 
+  -- |initial states
+  initStates :: k l -> [Int] 
+  -- |transition relation
+  rel :: KripkeState -> KripkeState -> k l -> Bool 
+  -- |state labeling function
+  labels :: KripkeState -> k l -> [l] 
 
   -- building a kripke structure
-  empty :: k l
-  addState :: KripkeState -> k l -> k l
-  addInitState :: KripkeState -> k l -> k l
-  addRel :: KripkeState -> KripkeState -> k l -> k l
-  addLabel :: KripkeState -> l -> k l -> k l
+  -- |a empty kripke structure
+  empty :: k l 
+  -- |add a new state
+  addState :: KripkeState -> k l -> k l 
+  -- |add a new state and mark is a initial
+  addInitState :: KripkeState -> k l -> k l 
+  -- | adds a relation between two already existing states
+  addRel :: KripkeState -> KripkeState -> k l -> k l 
+  -- | adds a label to a already existing state
+  addLabel :: KripkeState -> l -> k l -> k l 
 
+  -- |adds a new node with a given label
   addStateWithLabel :: KripkeState -> l -> k l -> k l
   addStateWithLabel s l = addLabel s l . addState s 
 
   -- helper functions
+  -- |returns whether given state is already in kripke structure
   nelem :: KripkeState -> k l -> Bool
   nelem s = elem s . states
 
+  -- |returns a specified number of state which are not in kripke structure
   newNodes :: Int -> k l -> [Int]
   newNodes n k = let m = maximum $ states k in take n [m+1,m+2..]
 
-
-  pre :: k l -> KripkeState -> [KripkeState] -- ^finds predecessor nodes
+  -- |returns all predecessors of a given state
+  pre :: k l -> KripkeState -> [KripkeState] 
   pre k s = [s'|s'<-states k, rel s' s k]
 
-  suc :: k l -> KripkeState -> [KripkeState] -- ^ finds successor nodes
+  -- |returns all successors of a given state
+  suc :: k l -> KripkeState -> [KripkeState] 
   suc k s = [s'|s' <- states k,rel s s' k]
 
   -- |returns all nodes without a successor
   leafs :: k l -> [KripkeState]
-  leafs k = concatMap (\n -> if null $ suc k n then return n else []) $ states k 
-
-
-
--- * inductive graphs as kripke structures
+  leafs k = 
+    mapMaybe (\s -> if null $ suc k s then Just s else Nothing) $ states k 
 
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
 
 instance (Kripke k) => Show (k String)  where
   show k = 
-    concatMap 
-      (\s->show s++":"++(concatMap show $ labels s k)++ "  -> "++concatMap (\c->show c++" ") (suc k s) ++"\n") $ 
-      states k
+    let lbls s= concatMap show $ labels s k
+        sucs s= concatMap (\c->show c++" ") (suc k s)
+    in concatMap (\s->show s++":"++lbls s++ "  -> "++sucs s++"\n")  $ states k
 
--- |we distinguish three kinds of states
+-- |we distinguish the following kinds of states
 data NodeType 
   = Initial -- ^ see definition of kripke structures
   | Terminal -- ^ optional but useful for control flow graphs
@@ -65,7 +78,7 @@ data NodeType
   deriving (Show,Eq,Ord)
 
 
--- |a wrapper for graphs containing cfgnodes
+-- |a wrapper for graphs containing 'NodeType's
 newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
 
 err f s = error $ f++ "|State "++show s++" is already in kripke structure" 
