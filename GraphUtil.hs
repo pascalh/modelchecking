@@ -28,6 +28,3 @@ treeRoot g = case roots g of
 roots :: Graph g => g a b -> [Node]
 roots g = concatMap (\n -> if null $ pre g n then return n else []) $ nodes g
 
--- |returns all nodes without a successor
-leafs :: Graph g => g a b -> [Node]
-leafs g = concatMap (\n -> if null $ suc g n then return n else []) $ nodes g 

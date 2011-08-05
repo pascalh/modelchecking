@@ -1,40 +1,30 @@
-module DataToGraph(dataToGraph,dataToKripkeGraph) where
-import Data.Graph.Inductive
+module DataToGraph(dataToKripke) where
 import Data.Tree
 import Data.Data
 import Data.Generics.Aliases
-
 import Kripke 
-import GraphUtil
 
-dataToKripkeGraph :: Data a => a -> KripkeGr String
-dataToKripkeGraph ast = 
-  let g = nmap Value $ dataToGraph ast
-      n = head $ newNodes 1 g 
-      r = treeRoot g
-      ls= leafs g in
-  KripkeGr $
-  insEdges (map (\l -> (l,l,())) ls) $ 
-  insEdge (n,r,()) $ 
-  insNode (n,Initial) g 
+dataToKripke :: (Data a,Kripke k) => a -> k String 
+dataToKripke = treeToKripke . dataToTree
 
+-- |transforms a tree into a kripke structure where every former tree leafs @l@
+-- lies on a infinite path @(l,l,l,l)@. This is needed for the property
+-- of a kripke structure that every state has a successor.
+treeToKripke :: Kripke k => Tree l -> k l
+treeToKripke t = 
+  let s = 1 
+      g = toKS s t $ addLabel s (rootLabel t) $ addInitState s empty
+  in foldr (\l -> addRel l l) g $ leafs g
 
-dataToGraph :: Data a => a -> Gr String ()
-dataToGraph = treeToGraph . dataToTree
+-- |transforms a tree into a kripke structure representing the tree
+toKS :: Kripke k => Int -> Tree l -> k l -> k l
+toKS j (Node _ cs) k =
+  foldr (\(c,i) -> toKS i c . addRel j i . 
+                   addStateWithLabel  i (rootLabel c)) 
+        k $
+        zip cs $ newNodes (length cs) k
 
-treeToGraph :: Tree a -> Gr a () 
-treeToGraph t = let n = head $ newNodes 1 (empty::Gr a ()) in
-  toCG n t $ insNode (n,rootLabel t) empty 
-
-toCG :: Int -> Tree a -> Gr a () -> Gr a ()
-toCG j (Node _ cs) g = 
-  foldr (\(c,i) -> toCG i c . insEdge (j,i,()) . insNode (i,rootLabel c)) g $
-    zip cs $ newNodes (length cs) g 
-
-test = treeToGraph $ 
-  Node "root" [Node "inner1" [Node "leaf1" []]
-              ,Node "inner2" [Node "leaf2" []]]
-
+-- |creates a tree labeled with constructor names
 dataToTree :: Data a => a -> Tree String 
 dataToTree t = Node (showConstr (toConstr t)) (gmapQ dataToTree t) 
 

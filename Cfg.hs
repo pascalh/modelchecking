@@ -1,57 +1,65 @@
-{-# LANGUAGE MultiParamTypeClasses , TypeSynonymInstances , FlexibleInstances, FlexibleContexts , TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses , TypeSynonymInstances , FlexibleInstances, FlexibleContexts , TypeFamilies , ScopedTypeVariables #-}
 
 module Cfg where
 import Language.While.Abswhile
 import Language.While.ErrM
 import Language.While.Parwhile
-import Data.Graph.Inductive
+import qualified Data.Graph.Inductive as G
 
 import Test.QuickCheck
 import WhileMisc
 import Kripke
+import CTL
 import GraphUtil
 import DataToGraph
 import Control.Arrow (first)
+import Control.Monad (forM_)
 import Data.Maybe (fromJust)
 
-data Varops = Decl String | Read String | Write String deriving (Show)
+data Varops = Decl String | Read String | Write String | VLabel String 
+
+instance Show Varops where
+  show (Decl s) = s
+  show (Read s) = s
+  show (Write s) = s
+  show (VLabel s) = s
 
 -- * define a datatype which contains the transformation functions 
 
 -- |data type for defining cfg-node-label-creations
-data WhileKripkeNode k 
-  = WhileKripkeNode 
-  { program :: Program -> KripkeNode k
-  , stmts   :: Stmts   -> KripkeNode k
-  , stmt    :: Stmt    -> KripkeNode k
-  , bexp    :: BExp    -> KripkeNode k
+data WhileKripkeLabel k 
+  = WhileKripkeLabel 
+  { program :: Program -> KripkeLabel k
+  , stmts   :: Stmts   -> KripkeLabel k
+  , stmt    :: Stmt    -> KripkeLabel k
+  , bexp    :: BExp    -> KripkeLabel k
   }
-
-vars :: WhileKripkeNode Varops
-vars = WhileKripkeNode toKripkeNode toKripkeNode toKripkeNode toKripkeNode 
+{-
+vars :: WhileKripkeLabel Varops
+vars = WhileKripkeLabel toKripkeLabel toKripkeLabel toKripkeLabel toKripkeLabel 
 
 class TonNode a b where
-  toKripkeNode :: a -> KripkeNode b
+  toKripkeLabel :: a -> KripkeLabel b
 
 class Foo a b where
-  getCfg :: WhileKripkeNode b -> a -> Gr (KripkeNode b) ()
+  getCfg :: WhileKripkeLabel b -> a -> G.Gr (KripkeLabel b) ()
   getCfg v p = toCfg v undefined p undefined undefined
 
-  toCfg :: WhileKripkeNode b -> Int -> a -> Int -> Gr (KripkeNode b) () -> Gr (KripkeNode b) ()
+  toCfg :: WhileKripkeLabel b -> Int -> a -> Int -> G.Gr (KripkeLabel b) () -> G.Gr (KripkeLabel b) ()
 
 instance Foo Program b where
   toCfg v _ (Program ss) _ _ =   
-    let g     = empty 
-        [i,t] = newNodes 2 g
-        h     = insNodes [(t,Terminal),(i,Initial)] g
+    let g     = G.empty 
+        [i,t] = G.newNodes 2 g
+        h     = G.insNodes [(t,Terminal),(i,Initial)] g
     in toCfg v i ss t h
 
 
 instance Foo Stmts b where
   toCfg v i (StmtsE s  ) t g = toCfg v i s t g
   toCfg v i (Stmts s ss) t g = 
-    let b = head $ newNodes 1 g in 
-      toCfg v b ss t $ toCfg v i s b $ insNode (b,Tag []) g
+    let b = head $ G.newNodes 1 g in 
+      toCfg v b ss t $ toCfg v i s b $ G.insNode (b,toKripkeLabel $ Stmts s ss ) g
 
 instance Foo Stmt b where
   toCfg v i s t g = 
@@ -63,65 +71,70 @@ instance Foo Stmt b where
 
 -- ks: a -> Varops
 instance TonNode Program Varops where
-  toKripkeNode _ = Tag []
+  toKripkeLabel _ = (Label,[VLabel []])
 
 instance TonNode Stmt Varops where
-  toKripkeNode (SDecl (Ident i))     = Value $ Decl i
-  toKripkeNode (SAssign (Ident i) _) = Value $ Write i
-  toKripkeNode (SWhile _ _)          = Tag "While"
-  toKripkeNode (SIf _ _)             = Tag "If"
+  toKripkeLabel (SDecl (Ident i))     = (Normal,[Decl i])
+  toKripkeLabel (SAssign (Ident i) _) = (Normal,[Write i])
+  toKripkeLabel (SWhile _ _)          = (Label, [VLabel "While"])
+  toKripkeLabel (SIf _ _)             = (Label, [VLabel "If"])
 
 instance TonNode Stmts Varops where
-  toKripkeNode _ = Tag []
+  toKripkeLabel _ = (Label,[VLabel []])
 
 instance TonNode BExp Varops where
-  toKripkeNode _ = Tag []
+  toKripkeLabel _ = (Label,[VLabel []])
   
 
 
-insCond :: WhileKripkeNode b -> Node -> Node -> Stmt 
-        -> Gr (KripkeNode b) () -> Gr (KripkeNode b) ()
+insCond :: WhileKripkeLabel b -> G.Node -> G.Node -> Stmt 
+        -> G.Gr (KripkeLabel b) () -> G.Gr (KripkeLabel b) ()
 insCond v i t s@(SWhile _ ss) g =     
-  let [x,y] = newNodes 2 g
-      h = insEdges [(y,x,()),(x,y,()),(i,x,()),(y,t,())]  
-        $ insNodes [(x,stmt v s),(y,stmt v s)] g 
+  let [x,y] = G.newNodes 2 g
+      h = G.insEdges [(y,x,()),(x,y,()),(i,x,()),(y,t,())]  
+        $ G.insNodes [(x,stmt v s),(y,stmt v s)] g 
   in toCfg v x ss y h
 
 insCond v i t s@(SIf _ ss) g =     
-  let [x,y] = newNodes 2 g
-      h = insEdges [(x,y,()),(i,x,()),(y,t,())]  
-        $ insNodes [(x,stmt v s),(y,stmt v s)] g 
+  let [x,y] = G.newNodes 2 g
+      h = G.insEdges [(x,y,()),(i,x,()),(y,t,())]  
+        $ G.insNodes [(x,stmt v s),(y,stmt v s)] g 
   in toCfg v x ss y h
 
 
 -- simple inserting nodes
-insBetween :: Node -> Node -> KripkeNode a 
-           -> Gr (KripkeNode a) () -> Gr (KripkeNode a) ()
+insBetween :: G.Node -> G.Node -> KripkeLabel a 
+           -> G.Gr (KripkeLabel a) () -> G.Gr (KripkeLabel a) ()
 insBetween i t v g = 
-  let n = head $ newNodes 1 g in
-  insEdge (i,n,()) $ insEdge (n,t,()) $ insNode (n,v) g
-
--- * pruning the cfg: doesnt work properly 
+  let n = head $ G.newNodes 1 g in
+  G.insEdge (i,n,()) $ G.insEdge (n,t,()) $ G.insNode (n,v) g
+-}
 
 -- |removes all empty tags from given graph
-prune :: DynGraph g => g (KripkeNode a) () -> g (KripkeNode a) ()
-prune g = prune' (nodes g) g where
+-- TODO remove all states marked with Label
+prune :: G.DynGraph g => g (KripkeLabel a) () -> g (KripkeLabel a) ()
+prune g = prune' (G.nodes g) g where
   prune' []     g = g
-  prune' (n:ns) g = let ((_,_,l,_),_) = first fromJust $ match n g in 
+  prune' (n:ns) g = let ((_,_,l,_),_) = first fromJust $ G.match n g in 
     case l of
-      Tag "" ->  prune' ns (removeNode n g)
+      (Label,_) ->  prune' ns (removeNode n g)
       _     ->  prune' ns g
   
 -- * testing values
 
+{-
 test :: IO ()
 test = mapM_ 
-  (\x -> let cfg = prune $ (getCfg::WhileKripkeNode Varops -> Program -> Gr (KripkeNode Varops) ())vars x in 
+  (\x -> let cfg = prune $ (getCfg::WhileKripkeLabel Varops -> Program -> G.Gr (KripkeLabel Varops) ())vars x in 
     putStrLn "----" >> print ( pretty x) >> print cfg) 
     programs 
-
+-}
 test2 :: IO ()
-test2 = mapM_ (\p -> putStrLn "----" >> print (pretty p) >> print (dataToKripkeGraph p)) programs
+test2 = forM_ programs $ \p -> do
+  let (k::KripkeGr String) = dataToKripke p 
+  print (pretty p) 
+  putStrLn "----" 
+  print k
 
 programs =[program6,program1,program2,program3,program4,program5] 
 
@@ -154,4 +167,22 @@ program5 = read
 test3 :: IO ()
 test3 = do
   p <- sample' (arbitrary::Gen Program)
-  mapM_ (\p -> putStrLn "----" >> print (pretty p) >> print (dataToKripkeGraph p)) $ take 7 p
+  let (k::KripkeGr String) = dataToKripke $ head p 
+  print $ pretty $ head p
+  putStrLn "----" 
+  --print $ "initstates:"++(show $ initStates k)
+  print k
+  print "################################"
+  print $ eval k (EG $ AP "f")
+
+-- * CTL tests
+
+test2_CTL :: IO ()
+test2_CTL = forM_ programs $ \p -> do
+  let (k::KripkeGr String) = dataToKripke p 
+  print (pretty p) 
+  print "------"
+  print k 
+  print "################################"
+  print $ eval k (Conj (AP "(:)") (EX $ AP "'f'"))
+
