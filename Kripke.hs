@@ -55,6 +55,10 @@ class Kripke k where
   suc :: k l -> KripkeState -> [KripkeState] 
   suc k s = [s'|s' <- states k,rel s s' k]
 
+  -- |returns all elements of transition relation
+  rels :: k l -> [(KripkeState,KripkeState)]
+  rels k = [(s,t) | s<-states k,t<- states k,rel s t k]
+
   -- |returns all nodes without a successor
   leafs :: k l -> [KripkeState]
   leafs k = 

@@ -9,6 +9,7 @@ import qualified Data.Graph.Inductive as G
 import Test.QuickCheck
 import WhileMisc
 import Kripke
+import PrintKripke
 import CTL
 import GraphUtil
 import DataToGraph
@@ -182,7 +183,7 @@ test2_CTL = forM_ programs $ \p -> do
   let (k::KripkeGr String) = dataToKripke p 
   print (pretty p) 
   print "------"
-  print k 
+  showKripke k
   print "################################"
-  print $ eval k (Conj (AP "(:)") (EX $ AP "'f'"))
+  -- print $ eval k (Conj (AP "(:)") (EX $ AP "'f'"))
 
