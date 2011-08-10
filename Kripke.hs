@@ -55,7 +55,7 @@ class Kripke k where
   suc :: k l -> KripkeState -> [KripkeState] 
   suc k s = [s'|s' <- states k,rel s s' k]
 
-  -- |returns all nodes without a successor
+  -- |returns all nodes without a successor -> immer leer!
   leafs :: k l -> [KripkeState]
   leafs k = 
     mapMaybe (\s -> if null $ suc k s then Just s else Nothing) $ states k 
