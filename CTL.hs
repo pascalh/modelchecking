@@ -28,9 +28,24 @@ eval k (Neg f)      = states k \\ eval k f
 eval k (Conj f1 f2) = eval k f1 `intersect` eval k f2
 eval k (Disj f1 f2) = nub $ eval k f1 `union` eval k f2
 eval k (EX f)       = pred k f
-eval k (EG f)       = nub $ eval k f `intersect` pred k (EG f)
-eval k (EU f1 f2)   = nub $ 
-  eval k f2 `intersect` (nub $ eval k f1 `union` pred k (EU f1 f2))
+eval k (EG f)       = 
+  let loop = [s|s<- states k,rel s s k,holds s k f] 
+      inner = pred k f \\ loop
+  in leafs++if null inner then [] else evalEG inner k f
+eval k (EU f1 f2)   = error "eval EU: Not implemented yet"
+
+-- |returns all non-loop states satisfying @EG f@ using a fixpoint iteration 
+evalEG :: (Kripke k, Eq a) 
+  => [KripkeState] -- ^current states satisfying @EG f@ 
+  -> k a -- ^ the kripke structure
+  -> Ctl a -- ^formula @f@
+  -> [KripkeState]
+evalEG is k f = 
+  let newGs      = nub [j|i<-is,j<-pre k i,holds j k f]
+      unionIsNew = nub $ newGs `union` is in
+  if length is == length unionIsNew 
+  then is
+  else evalEG unionIsNew k f
 
 -- |returns all states whose successors satisfy given formula
 pred :: (Kripke k, Eq a) => k a -> Ctl a -> [KripkeState]
