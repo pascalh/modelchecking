@@ -36,6 +36,10 @@ class Kripke k where
   -- |adds a new node with a given label
   addStateWithLabel :: KripkeState -> l -> k l -> k l
   addStateWithLabel s l = addLabel s l . addState s 
+  
+  -- |return all transitions
+  rels :: k l -> [(KripkeState,KripkeState)]
+  rels k = [(i,j)|i<-states k,j<-states k,rel i j k] 
 
   -- helper functions
   -- |returns whether given state is already in kripke structure

@@ -12,6 +12,7 @@ import Kripke
 import CTL
 import GraphUtil
 import DataToGraph
+import PrintKripke (showKripke)
 import Control.Arrow (first)
 import Control.Monad (forM_)
 import Data.Maybe (fromJust)
@@ -182,7 +183,7 @@ test2_CTL = forM_ programs $ \p -> do
   let (k::KripkeGr String) = dataToKripke p 
   print (pretty p) 
   print "------"
-  print k 
+  showKripke k 
   print "################################"
   print $ eval k $ EG $ Disj (AP "[]") (AP "(:)")
   --print $ eval k (Conj (AP "(:)") (EX $ AP "'f'"))
