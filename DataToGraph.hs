@@ -3,6 +3,7 @@ import Data.Tree
 import Data.Data
 import Data.Generics.Aliases
 import Kripke 
+import Data.Maybe (mapMaybe)
 
 dataToKripke :: (Data a,Kripke k) => a -> k String 
 dataToKripke = treeToKripke . dataToTree
@@ -27,4 +28,11 @@ toKS j (Node _ cs) k =
 -- |creates a tree labeled with constructor names
 dataToTree :: Data a => a -> Tree String 
 dataToTree t = Node (showConstr (toConstr t)) (gmapQ dataToTree t) 
+
+-- |returns all states without a successor. 'leafs' will return an empty
+-- list for correct kripke structures. We need all leafs here, in order
+-- to create a correct kripke structure.
+leafs :: Kripke k => k l -> [KripkeState]
+leafs k =
+  mapMaybe (\s -> if null $ suc k s then Just s else Nothing) $ states k
 

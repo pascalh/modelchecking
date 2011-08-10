@@ -1,8 +1,7 @@
-{-# LANGUAGE TypeFamilies , MultiParamTypeClasses , TypeSynonymInstances #-}
+{-# LANGUAGE TypeFamilies , MultiParamTypeClasses , TypeSynonymInstances ,FlexibleInstances #-}
 module Kripke where
 import qualified Data.Graph.Inductive as G 
 import Data.Maybe (mapMaybe)
-import Control.Applicative
 import Data.List ((\\))
 
 -- | We use @Int@s to uniquely identify a state in a kripke structure.
@@ -54,11 +53,6 @@ class Kripke k where
   -- |returns all successors of a given state
   suc :: k l -> KripkeState -> [KripkeState] 
   suc k s = [s'|s' <- states k,rel s s' k]
-
-  -- |returns all nodes without a successor -> immer leer!
-  leafs :: k l -> [KripkeState]
-  leafs k = 
-    mapMaybe (\s -> if null $ suc k s then Just s else Nothing) $ states k 
 
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
