@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies , MultiParamTypeClasses , TypeSynonymInstances , FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies , MultiParamTypeClasses , TypeSynonymInstances #-}
 module Kripke where
 import qualified Data.Graph.Inductive as G 
 import Data.Maybe (mapMaybe)
@@ -6,12 +6,12 @@ import Control.Applicative
 import Data.List ((\\))
 
 -- | We use @Int@s to uniquely identify a state in a kripke structure.
--- Minimal definition: 'states','initStates','rel','labels','empty',
--- 'addState', 'addInitState', 'addRel' and 'addLabel'.
 type KripkeState = Int
 
 -- |A interface for kripke structures. Errors are thrown if already existing
 -- nodes are inserted.
+-- Minimal definition: 'states','initStates','rel','labels','empty',
+-- 'addState', 'addInitState', 'addRel' and 'addLabel'.
 class Kripke k where
   -- |all states
   states :: k l -> [KripkeState] 
