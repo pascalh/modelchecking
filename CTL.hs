@@ -29,9 +29,9 @@ eval k (Conj f1 f2) = eval k f1 `intersect` eval k f2
 eval k (Disj f1 f2) = nub $ eval k f1 `union` eval k f2
 eval k (EX f)       = pred k f
 eval k (EG f)       = 
-  let loops = [s|s<- states k,rel s s k,holds s k f] 
-      inner = pred k f \\ loops
-  in loops++if null inner then [] else evalEG inner k f
+  let loop = [s|s<- states k,rel s s k,holds s k f] 
+      inner = pred k f \\ loop
+  in loop++if null inner then [] else evalEG inner k f
 eval k (EU f1 f2)   = error "eval EU: Not implemented yet"
 
 -- |returns all non-loop states satisfying @EG f@ using a fixpoint iteration 
