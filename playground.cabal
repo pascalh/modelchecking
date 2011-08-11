@@ -36,14 +36,14 @@ Stability:           Experimental
 
 Category:            Language
 
-Build-type:          Simple
+Build-type:       Simple 
 
 -- Extra files to be distributed with the package, such as examples or
 -- a README.
 -- Extra-source-files:  
 
 -- Constraint on the version of Cabal needed to build this package.
-Cabal-version:       >=1.6
+Cabal-version:       >=1.9.2
 
 
 Library
@@ -66,4 +66,11 @@ Library
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
-  
+
+test-suite basic
+    type: exitcode-stdio-1.0
+    main-is: test/Main.hs
+    build-depends: base
+
+
+
