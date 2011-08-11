@@ -48,7 +48,9 @@ class Kripke k where
 
   -- |returns a specified number of state which are not in kripke structure
   newNodes :: Int -> k l -> [Int]
-  newNodes n k = let m = maximum $ states k in take n [m+1,m+2..]
+  newNodes n k = 
+    let m = if null $ states k then 0  else maximum $ states k 
+    in take n [m+1,m+2..]
 
   -- |returns all predecessors of a given state
   pre :: k l -> KripkeState -> [KripkeState] 
