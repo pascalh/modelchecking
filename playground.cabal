@@ -57,7 +57,8 @@ Library
                  fgl == 5.4.2.3,
                  QuickCheck == 2.4.1.1,
                  language-while >= 0.1,
-                 derive == 2.5.2 
+                 derive == 2.5.2,
+                 graphviz == 2999.11.0.0 
               
   
   -- Modules not exported by this package.
