@@ -55,15 +55,10 @@ program5 = read
   "prog var i ; i ::= true ; var h ; if false then i::= false ; var g ; fi var f; end"  
 
 
-test3 :: IO ()
-test3 = do
+test3 :: Int -> IO ()
+test3 n = do
   ps <- sample' (arbitrary::Gen Program)
-  let (ks::[KripkeGr String]) = map dataToKripke $ take 5 ps
-  -- print $ pretty $ head p
-  --putStrLn "----" 
-  --print $ "initstates:"++(show $ initStates k)
-  --print k
-  --print "################################"
+  let (ks::[KripkeGr String]) = map dataToKripke $ take n ps
   mapM_ (print . flip eval (EG $ AP "[]")) ks
 
 -- * CTL tests
@@ -75,7 +70,5 @@ test2_CTL = forM_ programs $ \p -> do
   print "------"
   let f = EG $ Disj (AP "[]") (AP "(:)")
   print $ eval k f
-  print "################################"
   showKripke k
-  --print $ eval k (Conj (AP "(:)") (EX $ AP "'f'"))
 
