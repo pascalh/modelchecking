@@ -118,5 +118,9 @@ instance Kripke KripkeGr where
   addStateWithLabel s l g 
     | nelem s g = err "addStateWithLabel" s
     | otherwise = KripkeGr $ G.insNode (s,(Normal,[l])) $ graph g
+ 
+  pre (KripkeGr g) s = G.pre g s
+  suc (KripkeGr g) s = G.suc g s
+
 
 
