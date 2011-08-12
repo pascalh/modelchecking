@@ -109,7 +109,8 @@ instance Kripke KripkeGr where
 
   addRel u v g
     | nelem u g && nelem v g = KripkeGr $ G.insEdge (u,v,()) $ graph g
-    | otherwise              = if nelem u g then err "addRel" u else err "addRel" v
+    | otherwise              = 
+        if nelem u g then err "addRel" u else err "addRel" v
 
   addLabel s l g = case G.match s $ graph g of
     (Just (pp,n,(t,ls),ss),g') -> KripkeGr $ (pp,n,(t,l:ls),ss) G.& g'
@@ -121,6 +122,7 @@ instance Kripke KripkeGr where
  
   pre (KripkeGr g) s = G.pre g s
   suc (KripkeGr g) s = G.suc g s
+  rels (KripkeGr k) = G.edges k
 
 
 
