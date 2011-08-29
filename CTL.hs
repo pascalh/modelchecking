@@ -13,6 +13,7 @@ data Ctl a = TT
            | EX (Ctl a)
            | EU (Ctl a) (Ctl a)
            | EG (Ctl a)
+           | EF (Ctl a)
 
 -- |returns whether formula holds at a specific state
 holds :: (Kripke k, Eq a) => KripkeState -> k a -> Ctl a -> Bool
@@ -28,11 +29,20 @@ eval k (Neg f)      = states k \\ eval k f
 eval k (Conj f1 f2) = eval k f1 `intersect` eval k f2
 eval k (Disj f1 f2) = nub $ eval k f1 `union` eval k f2
 eval k (EX f)       = pred k f
+eval k (EF f)       = eval k (EU TT f)
 eval k (EG f)       = 
   let loop = [s|s<- states k,rel s s k,holds s k f] 
       inner = pred k f \\ loop
   in loop++if null inner then [] else evalEG inner k f
-eval k (EU f1 f2)   = error "eval EU: Not implemented yet"
+eval k (EU f1 f2)   = let t = eval k f2 in evalEU t f1 k
+
+evalEU :: (Eq a,Kripke k) => [KripkeState] -> Ctl a -> k a -> [KripkeState]
+evalEU t_i phi k = 
+  let t_ip1 = [s | s <- eval k phi , not $ null (suc k s `intersect` t_i)]
+      unionNew = nub $ t_i `union` t_ip1 in 
+  if length unionNew == length t_i
+  then t_i
+  else evalEU unionNew phi k
 
 -- |returns all non-loop states satisfying @EG f@ using a fixpoint iteration 
 evalEG :: (Kripke k, Eq a) 
