@@ -59,7 +59,7 @@ $( derive makeTypeable ''Ident )
 
 
 instance Arbitrary Program where
-  arbitrary = sized $ \n -> liftM Program $ arStmts n
+  arbitrary = sized $ \n -> liftM Program $ arStmts $ n `mod` 10
 
 instance Arbitrary Ident where
   arbitrary = liftM Ident (elements $ map return ['a'..'z'])
@@ -104,6 +104,7 @@ varCFG :: Program -> KripkeGr Varops
 varCFG = getCfg vars 
 
 data Varops = Decl String | Read String | Write String | VLabel String 
+  deriving Eq 
 
 instance Show Varops where
   show (Decl s) = "Decl "++s
