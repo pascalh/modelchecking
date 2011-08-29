@@ -41,7 +41,7 @@ evalEG :: (Kripke k, Eq a)
   -> Ctl a -- ^formula @f@
   -> [KripkeState]
 evalEG is k f = 
-  let newGs      = nub [j|i<-is,j<-pre k i,holds j k f]
+  let newGs      = is `intersect` (nub $ concatMap (pre k) is)
       unionIsNew = nub $ newGs `union` is in
   if length is == length unionIsNew 
   then is
