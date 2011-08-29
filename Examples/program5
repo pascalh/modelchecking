@@ -1,0 +1,6 @@
+prog 
+	var i ; 
+	i ::= true ; 
+	var h ; 
+	i::= false ;  
+end 

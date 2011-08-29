@@ -1,0 +1,10 @@
+prog 
+	var g ; 
+	while true do 
+		var y ; 
+		var z; 
+		y ::= false ; 
+	end 
+	var f; 
+end
+

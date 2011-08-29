@@ -1,8 +1,5 @@
-{-# LANGUAGE FlexibleInstances #-}
 module Main where
-
-import System.Exit (exitFailure,exitSuccess)
+import qualified TestKripke as K
 
 main = do
-    putStrLn "This test always succeds!"
-    exitSuccess
+    K.main

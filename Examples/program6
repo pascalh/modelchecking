@@ -1,0 +1,15 @@
+prog 
+	var g ; 
+	var i ;
+   	if true 
+	then  
+		var h ; 
+		if false then 
+			h ::= true ; 
+		fi 
+		var j; 
+	fi
+   	i::= false ; 
+	h ::= true  ; 
+	g ::= true ;  
+end

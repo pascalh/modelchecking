@@ -1,0 +1,8 @@
+prog 
+	var g ; 
+	while true do 
+		var y ; 
+		y ::= false ;  
+		var u; 
+	end 
+end

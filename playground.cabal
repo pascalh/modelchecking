@@ -40,17 +40,20 @@ Build-type:       Simple
 
 -- Extra files to be distributed with the package, such as examples or
 -- a README.
--- Extra-source-files:  
-
+Extra-source-files: Example/program1,
+                    Example/program2, 
+                    Example/program3, 
+                    Example/program4, 
+                    Example/program5,
+                    Example/program6
+ 
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.9.2
 
 
 Library
-  -- Modules exported by the library.
-  Exposed-modules:     CTL, DataToGraph, GraphUtil, Cfg, WhileMisc, Kripke
+  Exposed-modules:   CTL, DataToGraph, GraphUtil, Cfg, WhileMisc, Kripke, PrintKripke
   
-  -- Packages needed in order to build this package.
   Build-depends: base ,
                  syb == 0.3,
                  containers,
@@ -69,8 +72,17 @@ Library
 
 test-suite basic
     type: exitcode-stdio-1.0
-    main-is: test/Main.hs
-    build-depends: base
+    Hs-Source-Dirs: test
+    Other-modules: TestKripke
+    main-is: Main.hs
+    build-depends: base , 
+                   test-framework == 0.4.1.1 , 
+                   playground ,                 
+                   language-while >= 0.1,              
+                   QuickCheck == 2.4.1.1, 
+                   test-framework-quickcheck2,
+                   test-framework-hunit,
+                   HUnit == 1.2.4.2
 
 
 
