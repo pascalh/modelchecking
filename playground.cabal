@@ -45,7 +45,8 @@ Extra-source-files: Example/program1,
                     Example/program3, 
                     Example/program4, 
                     Example/program5,
-                    Example/program6
+                    Example/program6,
+                    Example/program7
  
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.9.2
