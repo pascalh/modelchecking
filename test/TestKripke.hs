@@ -28,11 +28,11 @@ props = testGroup "hasSucc" $
 examples :: Test
 examples = testGroup "DataToKripke" $ map 
   (\(p,phi) -> testCase ("DataToKripke "++p) $ 
-    run (dataToKripke::Program -> KripkeGr String) p (Just phi))
+    run (dataToKripke::Program -> KripkeGr String) False p (Just phi))
   (liftM2 (,) programs phisString) 
 
 examplesVar = testGroup "VarCfg" $ map 
-  (\(p,phi) -> testCase ("VarCfg "++p) $ run varCFG p (Just phi))
+  (\(p,phi) -> testCase ("VarCfg "++p) $ run varCFG False p (Just phi))
   (liftM2 (,) programs phisVar) 
 
 -- * properties of a kripke structure

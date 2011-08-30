@@ -12,21 +12,22 @@ import DataToGraph
 import PrintKripke (showKripke)
 import Control.Monad (forM_)
 
-programs = zipWith (++) (repeat "Examples/program") 
-                        (map show [1,2,3,4,5,6])  
+programs = zipWith (++) (repeat "Examples/program") (map show [1,2,3,4,5,6,7])  
 
 run :: (Eq l,Kripke k,Show l)
-    => (Program -> k l) -> FilePath -> Maybe (Ctl l) -> IO ()
-run f file phi = do
+    => (Program -> k l) -> Bool -> FilePath -> Maybe (Ctl l) -> IO () 
+run f displayKripke file phi = do
   content <- readFile file
   let ast::Program = read content
       k = f ast 
   print $ pretty ast
-  showKripke k
   case phi of 
     Just pp -> print $ eval k pp
     Nothing -> return ()
+  if displayKripke then showKripke k else return ""
+  return ()
 
 testExamples :: IO ()
 testExamples = forM_ programs $ \p -> 
-  run (dataToKripke::Program -> KripkeGr String ) p (Just $ EG $ AP "[]")
+  run (dataToKripke::Program -> KripkeGr String) 
+      True p (Just $ EU TT $ AP "BFalse")
