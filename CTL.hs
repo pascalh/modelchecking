@@ -14,6 +14,10 @@ data Ctl a = TT
            | EU (Ctl a) (Ctl a)
            | EG (Ctl a)
            | EF (Ctl a)
+           | AX (Ctl a)
+           | AF (Ctl a)
+           | AG (Ctl a)
+           | AU (Ctl a) (Ctl a)
 
 -- |returns whether formula holds at a specific state
 holds :: (Kripke k, Eq a) => KripkeState -> k a -> Ctl a -> Bool
@@ -29,12 +33,17 @@ eval k (Neg f)      = states k \\ eval k f
 eval k (Conj f1 f2) = eval k f1 `intersect` eval k f2
 eval k (Disj f1 f2) = nub $ eval k f1 `union` eval k f2
 eval k (EX f)       = pred k f
+eval k (AX f)       = eval k $ Neg $ EX $ Neg f
 eval k (EF f)       = eval k (EU TT f)
+eval k (AF f)       = eval k $ Neg $ EF $ Neg f
 eval k (EG f)       = 
   let loop = [s|s<- states k,rel s s k,holds s k f] 
       inner = pred k f \\ loop
   in loop++if null inner then [] else evalEG inner k f
+eval k (AG f)       = eval k $ Neg $ EG $ Neg f
 eval k (EU f1 f2)   = let t = eval k f2 in evalEU t f1 k
+eval k (AU f1 f2)   = 
+  eval k $ ((Neg $ Neg f2) `EU` (Neg f1) `Conj` (Neg f2)) `Conj` AG f2
 
 evalEU :: (Eq a,Kripke k) => [KripkeState] -> Ctl a -> k a -> [KripkeState]
 evalEU t_i phi k = 
