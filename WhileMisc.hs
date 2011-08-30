@@ -139,7 +139,8 @@ instance Foo Program where
   toCfg v _ (Program ss) _ _ =   
     let g     = empty 
         [i,t] = newNodes 2 g
-        h     = addStateWithLabel t (VLabel []) $
+        h     = addRel t t $ 
+                addStateWithLabel t (VLabel []) $
                 addInitState i g
     in toCfg v i ss t h
 
