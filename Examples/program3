@@ -1,9 +1,0 @@
-prog 
-	var i ; 
-	i ::= true ; 
-	var h ; 
-	if false then 
-		i::= false ; 
-		var g ; 
-	fi  
-end
