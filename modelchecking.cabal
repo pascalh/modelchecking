@@ -53,7 +53,7 @@ Cabal-version:       >=1.9.2
 
 
 Library
-  Exposed-modules:   CTL, DataToGraph, GraphUtil, Cfg, WhileMisc, Kripke, PrintKripke
+  Exposed-modules:   CTL, DataToGraph, Cfg, WhileMisc, Kripke, PrintKripke
   
   Build-depends: base ,
                  syb == 0.3,
