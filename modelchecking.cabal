@@ -2,7 +2,7 @@
 -- options, see
 -- http://www.haskell.org/cabal/release/cabal-latest/doc/users-guide/authors.html#pkg-descr.
 -- The name of the package.
-Name:                playground
+Name:               modelchecking 
 
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
@@ -78,7 +78,7 @@ test-suite basic
     main-is: Main.hs
     build-depends: base , 
                    test-framework == 0.4.1.1 , 
-                   playground ,                 
+                   modelchecking,                 
                    language-while >= 0.1,              
                    QuickCheck == 2.4.1.1, 
                    test-framework-quickcheck2,
