@@ -1,6 +1,6 @@
-module CTL where
+module ModelChecking.Ctl where
 
-import Kripke
+import ModelChecking.Kripke
 import Prelude hiding (pred)
 import Data.List ((\\),union,intersect,nub)
 

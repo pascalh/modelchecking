@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeFamilies , MultiParamTypeClasses , TypeSynonymInstances ,FlexibleInstances #-}
-module Kripke where
+{-# LANGUAGE TypeSynonymInstances ,FlexibleInstances #-}
+module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
 import Data.Maybe (mapMaybe)
 import Data.List ((\\))

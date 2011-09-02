@@ -1,6 +1,6 @@
-module PrintKripke where
+module ModelChecking.KripkePrint where
 
-import qualified Kripke as K
+import qualified ModelChecking.Kripke as K
 
 import Data.GraphViz
 import Data.Graph.Inductive
