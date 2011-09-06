@@ -63,12 +63,6 @@ class Kripke k where
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
 
-instance (Kripke k) => Show (k String)  where
-  show k = 
-    let lbls s= concatMap show $ labels s k
-        sucs s= concatMap (\c->show c++" ") (suc k s)
-    in concatMap (\s->show s++":"++lbls s++ "  -> "++sucs s++"\n")  $ states k
-
 -- |we distinguish the following kinds of states
 data NodeType 
   = Initial -- ^ see definition of kripke structures
