@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances ,FlexibleInstances #-}
 module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
 import Data.Maybe (mapMaybe)
