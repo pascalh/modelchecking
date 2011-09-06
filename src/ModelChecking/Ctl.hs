@@ -57,7 +57,7 @@ eval k (EF f)       = eval k (EU TT f)
 eval k (AF f)       = eval k $ Neg $ EG $ Neg f
 eval k (EG f)       = evalEG f k (eval k f) 
 eval k (AG f)       = eval k $ Neg $ EF $ Neg f
-eval k (EU f1 f2)   = evalEU (EU f1 f2) k (eval k f2)
+eval k (EU f1 f2)   = evalEU f1 k (eval k f2)
 eval k (AU f1 f2)   = 
   eval k $ 
     (Neg $ (Neg f2) `EU` (Neg f1) `Conj` (Neg f2)) 
@@ -65,10 +65,10 @@ eval k (AU f1 f2)   =
     (Neg $ EG $ Neg f2)
 
 evalEU :: (Eq a,Kripke k) => Ctl a -> k a -> [KripkeState] -> [KripkeState]
-evalEU phi@(EU f1 f2) k t = 
+evalEU f1 k t = 
   let t1 = nub $ t `union` [s | s<-eval k f1 
                            , not $ null $ suc k s `intersect` t] in
-  if length t1 == length t then t else evalEU phi k t1
+  if length t1 == length t then t else evalEU f1 k t1
 
 evalEG :: (Eq a,Kripke k) => Ctl a -> k a -> [KripkeState] -> [KripkeState]
 evalEG f k t = 
