@@ -43,7 +43,10 @@ eval k (EG f)       =
 eval k (AG f)       = eval k $ Neg $ EG $ Neg f
 eval k (EU f1 f2)   = let t = eval k f2 in evalEU t f1 k
 eval k (AU f1 f2)   = 
-  eval k $ ((Neg $ Neg f2) `EU` (Neg f1) `Conj` (Neg f2)) `Conj` AG f2
+  eval k $ 
+    (Neg $ (Neg f2) `EU` (Neg f1) `Conj` (Neg f2)) 
+    `Conj` 
+    (Neg $ EG $ Neg f2)
 
 evalEU :: (Eq a,Kripke k) => [KripkeState] -> Ctl a -> k a -> [KripkeState]
 evalEU t_i phi k = 
