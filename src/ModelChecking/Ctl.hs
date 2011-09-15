@@ -78,4 +78,4 @@ evalEG f k t =
 
 -- |returns all states whose successors satisfy given formula
 pred :: (Kripke k, Eq a) => k a -> Ctl a -> [KripkeState]
-pred k f = nub $ concatMap (pre k) $ eval k f
+pred k = nub . concatMap (pre k) . eval k
