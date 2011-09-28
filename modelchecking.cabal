@@ -14,8 +14,10 @@ Cabal-version:       >=1.9.2
 
 Library
   Exposed-modules:   ModelChecking.Ctl,
+                     ModelChecking.Saql,
                      ModelChecking.Kripke, 
-                     ModelChecking.KripkePrint
+                     ModelChecking.KripkePrint,
+                     ModelChecking.AstToKripke
   Hs-Source-Dirs: src
   
   Build-depends: base ,
