@@ -1,7 +1,7 @@
 module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
 import Data.Maybe (mapMaybe)
-import Data.List ((\\))
+import Data.List ((\\),nub,union)
 
 -- | We use @Int@s to uniquely identify a state in a kripke structure.
 type KripkeState = Int
@@ -59,6 +59,13 @@ class Kripke k where
   suc :: k l -> KripkeState -> [KripkeState] 
   suc k s = [s'|s' <- states k,rel s s' k]
 
+  preT :: k l -> KripkeState -> [KripkeState]
+  preT k s = nub $ pre k s `union` concatMap (preT k) (pre k s)
+
+  sucT :: k l -> KripkeState -> [KripkeState]
+  sucT k s | suc k s == [s] = [s] 
+           | otherwise      = 
+      nub $ suc k s `union` (nub $ concatMap (nub . sucT k) (suc k s))
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
 
