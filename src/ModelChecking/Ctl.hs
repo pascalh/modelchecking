@@ -1,6 +1,7 @@
-module ModelChecking.Ctl where
+module ModelChecking.Ctl (Ctl(..)) where
 
 import ModelChecking.Kripke
+import qualified ModelChecking.Logic as L
 import Prelude hiding (pred)
 import Data.List ((\\),union,intersect,nub)
 
@@ -18,6 +19,9 @@ data Ctl a = TT
            | AF (Ctl a)
            | AG (Ctl a)
            | AU (Ctl a) (Ctl a)
+
+instance L.Logic Ctl where
+  eval k l = eval k l 
 
 br s= "("++s++")"
 

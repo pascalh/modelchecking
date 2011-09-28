@@ -17,7 +17,8 @@ Library
                      ModelChecking.Saql,
                      ModelChecking.Kripke, 
                      ModelChecking.KripkePrint,
-                     ModelChecking.AstToKripke
+                     ModelChecking.AstToKripke,
+                     ModelChecking.Logic
   Hs-Source-Dirs: src
   
   Build-depends: base ,

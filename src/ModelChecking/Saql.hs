@@ -1,8 +1,9 @@
 {-|
 The simple ast query logic is a logic to query kripke structures
 -}
-module ModelChecking.Saql where
+module ModelChecking.Saql (Saql(..)) where
 import ModelChecking.Kripke
+import qualified ModelChecking.Logic as L
 import Data.List ((\\),intersect,nub,union)
 
 data Saql a 
@@ -16,6 +17,9 @@ data Saql a
            | F (Saql a) -- ^formula holds at any succeding state
            | B (Saql a) -- ^formula holds at a direct predecessor
            | P (Saql a) -- ^formula holds at any predeceding state
+
+instance L.Logic Saql where
+  eval k l = eval k l 
 
 br s= "("++s++")"
 
