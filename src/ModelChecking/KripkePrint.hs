@@ -1,9 +1,10 @@
-module ModelChecking.KripkePrint where
+module ModelChecking.KripkePrint(showKripke) where
 
 import qualified ModelChecking.Kripke as K
 
 import Data.GraphViz
 import Data.Graph.Inductive
+import Data.GraphViz.Attributes
 
 -- |transforms a kripke structure to dotgraph representation
 toDotgraph :: (K.Kripke k,Show l) => Settings -> k l -> IO (DotGraph Node)
@@ -30,9 +31,10 @@ toEdge (u,v) = DotEdge  u v True edgeAtt
 
 -- |global node attribute
 nodeAttrs :: Settings -> GlobalAttributes
-nodeAttrs s = NodeAttrs [ Shape BoxShape
+nodeAttrs s = NodeAttrs [ Shape Ellipse 
                         , FontSize $ fontSize s
                         , FontName $ font s 
+                        , FontColor $ X11Color RoyalBlue4
                         ]
 
 -- |global edge attribute
@@ -40,14 +42,16 @@ edgeAttrs :: Settings -> GlobalAttributes
 edgeAttrs s = EdgeAttrs 
   [ FontSize $ fontSize s
   , FontName $ font s
+  , Style $ return $ SItem Dotted []
+  , ArrowHead $ AType [(ArrMod OpenArrow BothSides,Vee)]
   ]
 
 edgeAtt ::[Attribute]
 edgeAtt = []
 
 -- |shows a kripke structure using 'show' to create state labels
-showKripke :: (K.Kripke k,Show l) => k l -> IO String 
-showKripke k = prettyPrint =<< toDotgraph defaultSettings k
+showKripke :: (K.Kripke k,Show l) => k l -> IO () 
+showKripke k = toDotgraph defaultSettings k >> return ()
 
 -- |default settings
 defaultSettings :: Settings
