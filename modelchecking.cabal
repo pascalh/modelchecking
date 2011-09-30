@@ -13,8 +13,8 @@ Build-type:       Simple
 Cabal-version:       >=1.9.2
 
 Library
-  Exposed-modules:   ModelChecking.Ctl,
-                     ModelChecking.Saql,
+  Exposed-modules:   ModelChecking.Logic.Ctl,
+                     ModelChecking.Logic.Saql,
                      ModelChecking.Kripke, 
                      ModelChecking.KripkePrint,
                      ModelChecking.AstToKripke,

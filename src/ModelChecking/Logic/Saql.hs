@@ -1,7 +1,7 @@
 {-|
 The simple ast query logic is a logic to query kripke structures
 -}
-module ModelChecking.Saql (Saql(..)) where
+module ModelChecking.Logic.Saql (Saql(..)) where
 import ModelChecking.Kripke
 import qualified ModelChecking.Logic as L
 import Data.List ((\\),intersect,nub,union)

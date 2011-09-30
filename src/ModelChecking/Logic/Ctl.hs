@@ -1,4 +1,4 @@
-module ModelChecking.Ctl (Ctl(..)) where
+module ModelChecking.Logic.Ctl (Ctl(..)) where
 
 import ModelChecking.Kripke
 import qualified ModelChecking.Logic as L
