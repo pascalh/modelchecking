@@ -103,7 +103,6 @@ toAdj parent (Node l cs) = do
   foldM 
     (\_ (c,n)->do 
       addStateWithLabelM n (rootLabel c)
-      if null cs then addRelM n [n] else return ()
       toAdj n c
     )
     () 
@@ -124,7 +123,8 @@ addStateWithLabelM s l = do
 addRelM :: KripkeState -> [KripkeState] -> State AdjState ()
 addRelM i xs = do
   (AdjState as ls ns) <- get 
-  put $ AdjState ((i,xs):as) ls ns
+  let a = if null xs then (i,i:xs) else (i,xs)
+  put $ AdjState (a:as) ls ns
 
 getNewNode :: State AdjState KripkeState
 getNewNode = do
