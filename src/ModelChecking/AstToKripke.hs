@@ -1,4 +1,4 @@
-{-# LANGUAGE PackageImports ,FlexibleInstances , UndecidableInstances #-}
+{-# LANGUAGE PackageImports #-}
 module ModelChecking.AstToKripke
   (AstToKripke(..)
   ,Label(Ident,Constr)
@@ -6,12 +6,13 @@ module ModelChecking.AstToKripke
 where
 import Data.Tree (Tree(..))
 import Data.Data (Data,gmapQ,showConstr,toConstr)
-import ModelChecking.Kripke -- (Kripke(..),KripkeState,KripkeGr)
+import ModelChecking.Kripke (Kripke(..)
+                            ,KripkeDyn(..)
+                            ,KripkeState,KripkeGr,AdjList(AdjList))
 import Data.Maybe (mapMaybe)
 import Data.Monoid (Monoid(..))
 import Data.Foldable (fold)
-import Data.Array
-
+import Data.Array (Array,array)
 import "mtl" Control.Monad.State
 
 -- |'AstToKripke' offers an interface to create kripke structures containing 
@@ -46,7 +47,7 @@ instance Show Label where
   show (Constr s) = "C|"++s
   show (Ident i)  = "I|"++i
 
-instance Kripke k => AstToKripke k where
+instance AstToKripke KripkeGr where
   astToKripkeIgSubtr cs = treeToKripke . toLabel . dataToTree cs
 
 -- |folds degenerated lists of chars to a single string
@@ -76,7 +77,7 @@ isIdent c = c `elem` ['a'..'z']++['A'..'Z']++['1'..'9']++['0']++[' ','_']
 -- |transforms a tree into a kripke structure where every former tree leafs @l@
 -- lies on a infinite path @(l,l,l,l)@. This is needed for the property
 -- of a kripke structure that every state has a successor.
-treeToKripke :: Kripke k => Tree l -> k l
+treeToKripke :: KripkeDyn k => Tree l -> k l
 treeToKripke t = 
   let s = 1 
       g = toKS s t $ addLabel s (rootLabel t) $ addInitState s empty
@@ -140,7 +141,7 @@ getNewNodes i = do
 
 
 -- |transforms a tree into a kripke structure representing the tree
-toKS :: Kripke k => Int -> Tree l -> k l -> k l
+toKS :: KripkeDyn k => Int -> Tree l -> k l -> k l
 toKS j (Node _ cs) k =
   foldr (\(c,i) -> toKS i c . addRel j i . 
                    addStateWithLabel  i (rootLabel c)) 

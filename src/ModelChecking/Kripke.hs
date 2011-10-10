@@ -21,22 +21,6 @@ class Kripke k where
   -- |state labeling function
   labels :: KripkeState -> k l -> [l] 
 
-  -- building a kripke structure
-  -- |a empty kripke structure
-  empty :: k l 
-  -- |add a new state
-  addState :: KripkeState -> k l -> k l 
-  -- |add a new state and mark is a initial
-  addInitState :: KripkeState -> k l -> k l 
-  -- | adds a relation between two already existing states
-  addRel :: KripkeState -> KripkeState -> k l -> k l 
-  -- | adds a label to a already existing state
-  addLabel :: KripkeState -> l -> k l -> k l 
-
-  -- |adds a new node with a given label
-  addStateWithLabel :: KripkeState -> l -> k l -> k l
-  addStateWithLabel s l = addLabel s l . addState s 
-  
   -- |return all transitions
   rels :: k l -> [(KripkeState,KripkeState)]
   rels k = [(i,j)|i<-states k,j<-states k,rel i j k] 
@@ -60,62 +44,36 @@ class Kripke k where
   suc :: k l -> KripkeState -> [KripkeState] 
   suc k s = [s'|s' <- states k,rel s s' k]
 
+  -- |transitive closure of predecessor relation for a given state
   preT :: k l -> KripkeState -> [KripkeState]
   preT k s = nub $ pre k s `union` concatMap (preT k) (pre k s)
 
+  -- |transitive closure of successor relation for a given state
   sucT :: k l -> KripkeState -> [KripkeState]
   sucT k s | suc k s == [s] = [s] 
            | otherwise      = 
       nub $ suc k s `union` (nub $ concatMap (nub . sucT k) (suc k s))
--- |a state in a kripke structure has a type and a set of labels
-type KripkeLabel a = (NodeType,[a])
 
--- |we distinguish the following kinds of states
-data NodeType 
-  = Initial -- ^ see definition of kripke structures
-  | Terminal -- ^ optional but useful for control flow graphs
-  | Normal   -- ^ a normal node in kripke structure
-  | Label    -- ^ a node which will only be processed by printer
-  deriving (Show,Eq,Ord)
+-- |This class offers an interface to mutable kripke structure, i.e.
+-- their content after initial creation.
+class Kripke k => KripkeDyn k where
+  -- building a kripke structure
+  -- |a empty kripke structure
+  empty :: k l 
+  -- |add a new state
+  addState :: KripkeState -> k l -> k l 
+  -- |add a new state and mark is a initial
+  addInitState :: KripkeState -> k l -> k l 
+  -- | adds a relation between two already existing states
+  addRel :: KripkeState -> KripkeState -> k l -> k l 
+  -- | adds a label to a already existing state
+  addLabel :: KripkeState -> l -> k l -> k l 
 
--- |a adjacency list to represent static kripke structures
-data AdjList a = AdjList 
-  { adjs :: Array KripkeState [KripkeState] -- ^ adjacency relation
-  , lbls :: Array KripkeState a -- ^ labeling function
-  , initialStates :: [KripkeState] -- ^ initial states
-  } deriving Show
+  -- |adds a new node with a given label
+  addStateWithLabel :: KripkeState -> l -> k l -> k l
+  addStateWithLabel s l = addLabel s l . addState s 
 
-instance Kripke AdjList where
-  states (AdjList adj _ _) = indices adj
-  initStates = initialStates
-  rel i j (AdjList adj _ _) = j `elem` (adj ! i)
-  labels i (AdjList _ l _) = return $ l ! i
-  
-  empty = error "not implemented"
-  addState = error "not implemented"
-  addInitState = error "not implemented"
-  addRel = error "not implemented"
-  addLabel = error "not implemented"
-
--- |a wrapper for graphs containing 'NodeType's
-newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
-
-err f s = error $ f++ "|State "++show s++" is already in kripke structure" 
-errN s = error $ "State "++show s++" is not in kripke structure" 
-
-instance Kripke KripkeGr where
-  states (KripkeGr g) = G.nodes g
-
-  initStates (KripkeGr g) = mapMaybe (f . flip G.match g) (G.nodes g) where
-    f (Just (_,n,(Initial,_),_),_) = Just n
-    f _                            = Nothing
-
-  rel u v = elem (u,v) . G.edges . graph
-
-  labels s (KripkeGr g) = case G.match s g of
-    (Just (_,_,(_,ls),_),_) -> ls
-    _                       -> []
-
+instance KripkeDyn KripkeGr where
   empty = KripkeGr G.empty
 
   addState s g
@@ -139,6 +97,50 @@ instance Kripke KripkeGr where
     | nelem s g = err "addStateWithLabel" s
     | otherwise = KripkeGr $ G.insNode (s,(Normal,[l])) $ graph g
  
+ 
+
+-- |a state in a kripke structure has a type and a set of labels
+type KripkeLabel a = (NodeType,[a])
+
+-- |we distinguish the following kinds of states
+data NodeType 
+  = Initial -- ^ see definition of kripke structures
+  | Terminal -- ^ optional but useful for control flow graphs
+  | Normal   -- ^ a normal node in kripke structure
+  | Label    -- ^ a node which will only be processed by printer
+  deriving (Show,Eq,Ord)
+
+-- |a adjacency list to represent static kripke structures
+data AdjList a = AdjList 
+  { adjs :: Array KripkeState [KripkeState] -- ^ adjacency relation
+  , lbls :: Array KripkeState a -- ^ labeling function
+  , initialStates :: [KripkeState] -- ^ initial states
+  } deriving Show
+
+instance Kripke AdjList where
+  states (AdjList adj _ _) = indices adj
+  initStates = initialStates
+  rel i j (AdjList adj _ _) = j `elem` (adj ! i)
+  labels i (AdjList _ l _) = return $ l ! i
+
+-- |a wrapper for graphs containing 'NodeType's
+newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
+
+err f s = error $ f++ "|State "++show s++" is already in kripke structure" 
+errN s = error $ "State "++show s++" is not in kripke structure" 
+
+instance Kripke KripkeGr where
+  states (KripkeGr g) = G.nodes g
+
+  initStates (KripkeGr g) = mapMaybe (f . flip G.match g) (G.nodes g) where
+    f (Just (_,n,(Initial,_),_),_) = Just n
+    f _                            = Nothing
+
+  rel u v = elem (u,v) . G.edges . graph
+
+  labels s (KripkeGr g) = case G.match s g of
+    (Just (_,_,(_,ls),_),_) -> ls
+    _                       -> []
   pre (KripkeGr g) s = G.pre g s
   suc (KripkeGr g) s = G.suc g s
   rels (KripkeGr k) = G.edges k
