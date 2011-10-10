@@ -1,7 +1,7 @@
 module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
 import Data.Maybe (mapMaybe)
-import Data.List ((\\),nub,union)
+import Data.List (nub,union)
 import Data.Array (Array,indices,(!))
 
 -- | We use @Int@s to uniquely identify a state in a kripke structure.
@@ -126,7 +126,10 @@ instance Kripke AdjList where
 -- |a wrapper for graphs containing 'NodeType's
 newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
 
+err :: Show a => String -> a -> b
 err f s = error $ f++ "|State "++show s++" is already in kripke structure" 
+
+errN :: Show a => a -> b
 errN s = error $ "State "++show s++" is not in kripke structure" 
 
 instance Kripke KripkeGr where

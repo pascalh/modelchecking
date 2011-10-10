@@ -13,6 +13,7 @@ Build-type:       Simple
 Cabal-version:       >=1.9.2
 
 Library
+  ghc-options: -Wall
   Exposed-modules:   ModelChecking.Logic.Ctl,
                      ModelChecking.Logic.Saql,
                      ModelChecking.Kripke, 
@@ -23,7 +24,7 @@ Library
   
   Build-depends: base ,
                  containers,
-                 fgl == 5.4.2.3,
-                 graphviz == 2999.11.0.0,
-                 array == 0.3.0.2,
+                 fgl > 5.4.2.3,
+                 graphviz == 2999.12.0.3,
+                 array ,
                  mtl == 2.0.1.0
