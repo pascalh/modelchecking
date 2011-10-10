@@ -2,6 +2,7 @@ module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
 import Data.Maybe (mapMaybe)
 import Data.List ((\\),nub,union)
+import Data.Array (Array,indices,(!))
 
 -- | We use @Int@s to uniquely identify a state in a kripke structure.
 type KripkeState = Int
@@ -77,6 +78,24 @@ data NodeType
   | Label    -- ^ a node which will only be processed by printer
   deriving (Show,Eq,Ord)
 
+-- |a adjacency list to represent static kripke structures
+data AdjList a = AdjList 
+  { adjs :: Array KripkeState [KripkeState] -- ^ adjacency relation
+  , lbls :: Array KripkeState a -- ^ labeling function
+  , initialStates :: [KripkeState] -- ^ initial states
+  } deriving Show
+
+instance Kripke AdjList where
+  states (AdjList adj _ _) = indices adj
+  initStates = initialStates
+  rel i j (AdjList adj _ _) = j `elem` (adj ! i)
+  labels i (AdjList _ l _) = return $ l ! i
+  
+  empty = error "not implemented"
+  addState = error "not implemented"
+  addInitState = error "not implemented"
+  addRel = error "not implemented"
+  addLabel = error "not implemented"
 
 -- |a wrapper for graphs containing 'NodeType's
 newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
@@ -124,5 +143,6 @@ instance Kripke KripkeGr where
   suc (KripkeGr g) s = G.suc g s
   rels (KripkeGr k) = G.edges k
 
+  newNodes n (KripkeGr k) = G.newNodes n k
 
 
