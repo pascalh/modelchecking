@@ -21,6 +21,7 @@ data Saql a
 instance L.Logic Saql where
   eval k l = eval k l 
 
+br :: String -> String
 br s= "("++s++")"
 
 instance Show a => Show (Saql a) where
@@ -35,15 +36,11 @@ instance Show a => Show (Saql a) where
   show (P a)        = "P "++show a
   show (B a)        = "B "++show a
 
--- |returns whether formula holds at a specific state
-holds :: (Kripke k, Eq a) => KripkeState -> k a -> Saql a -> Bool
-holds s k f= s `elem` eval k f
-
 -- |returns all states for which given formula holds
 -- (using the labeling algorithm)
 eval :: (Kripke k ,Eq a) => k a -> Saql a -> [KripkeState]
 eval k TT           = states k
-eval k FF           = []
+eval _ FF           = []
 eval k (AP a)       = [s| s <- states k, a `elem` labels s k]
 eval k (Neg f)      = states k \\ eval k f
 eval k (Conj f1 f2) = eval k f1 `intersect` eval k f2

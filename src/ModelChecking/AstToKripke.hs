@@ -12,8 +12,8 @@ import ModelChecking.Kripke (Kripke(..)
 import Data.Maybe (mapMaybe)
 import Data.Monoid (Monoid(..))
 import Data.Foldable (fold)
-import Data.Array (Array,array)
 import "mtl" Control.Monad.State
+import Data.Array(array)
 
 -- |'AstToKripke' offers an interface to create kripke structures containing 
 -- labels of type @l@ out ofsyntax trees.
@@ -87,7 +87,7 @@ instance AstToKripke AdjList where
   astToKripkeIgSubtr cs = treeToAdj . toLabel . dataToTree cs
 
 treeToAdj :: Tree Label -> AdjList Label
-treeToAdj t@(Node lab cs) = 
+treeToAdj t@(Node lab _) = 
   let 
       iState    = AdjState [] [(s,lab)] [s+1,s+2..]
       (AdjState as ls ms) = execState (toAdj s t) iState
@@ -97,7 +97,7 @@ treeToAdj t@(Node lab cs) =
   in AdjList a l [s]
 
 toAdj :: KripkeState -> Tree Label -> State AdjState ()
-toAdj parent (Node l cs) = do
+toAdj parent (Node _ cs) = do
   ns <- getNewNodes $ length cs
   addRelM parent ns
   foldM 
@@ -125,12 +125,6 @@ addRelM i xs = do
   (AdjState as ls ns) <- get 
   let a = if null xs then (i,i:xs) else (i,xs)
   put $ AdjState (a:as) ls ns
-
-getNewNode :: State AdjState KripkeState
-getNewNode = do
-  (AdjState adj lbl (n:ns)) <- get 
-  put $ AdjState adj lbl ns
-  return n
 
 getNewNodes :: Int -> State AdjState [KripkeState]
 getNewNodes i = do

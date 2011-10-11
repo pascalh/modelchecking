@@ -23,6 +23,7 @@ data Ctl a = TT
 instance L.Logic Ctl where
   eval k l = eval k l 
 
+br :: String -> String
 br s= "("++s++")"
 
 instance Show a => Show (Ctl a) where
@@ -41,16 +42,11 @@ instance Show a => Show (Ctl a) where
   show (AU a1 a2)   = "A"++(br $ show a1)++" U "++ (br $ show a2)
   show (EU a1 a2)   = "E"++(br $ show a1)++" U "++ (br $ show a2)
  
-
--- |returns whether formula holds at a specific state
-holds :: (Kripke k, Eq a) => KripkeState -> k a -> Ctl a -> Bool
-holds s k f= s `elem` eval k f
-
 -- |returns all states for which given formula holds
 -- (using the labeling algorithm)
 eval :: (Kripke k ,Eq a) => k a -> Ctl a -> [KripkeState]
 eval k TT           = states k
-eval k FF           = []
+eval _ FF           = []
 eval k (AP a)       = [s| s <- states k, a `elem` labels s k]
 eval k (Neg f)      = states k \\ eval k f
 eval k (Conj f1 f2) = eval k f1 `intersect` eval k f2
