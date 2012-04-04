@@ -9,7 +9,12 @@ import Data.Tree (Tree(..))
 import Data.Data (Data,gmapQ,showConstr,toConstr)
 import ModelChecking.Kripke (Kripke(..)
                             ,KripkeDyn(..)
-                            ,KripkeState,KripkeGr,AdjList(AdjList))
+                            ,KripkeState,KripkeGr,AdjList(AdjList)
+                            ,addLabel'
+                            ,addInitState'
+                            ,addRel'
+                            ,addStateWithLabel'
+                            )
 import Data.Maybe (mapMaybe)
 import Data.Monoid (Monoid(..))
 import Data.Foldable (fold)
@@ -86,8 +91,8 @@ isIdent c = c `elem` ['a'..'z']++['A'..'Z']++['1'..'9']++['0']++[' ','_']
 treeToKripke :: KripkeDyn k => Tree l -> k l
 treeToKripke t = 
   let s = 1 
-      g = toKS s t $ addLabel s (rootLabel t) $ addInitState s empty
-  in foldr (\l -> addRel l l) g $ leafs g
+      g = toKS s t $ addLabel' s (rootLabel t) $ addInitState' s empty
+  in foldr (\l -> addRel' l l) g $ leafs g
 
 instance AstToKripke AdjList where
   astToKripkeIgSubtr cs = treeToAdj . toLabel . dataToTree cs
@@ -145,8 +150,8 @@ getNewNodes i = do
 -- |transforms a tree into a kripke structure representing the tree
 toKS :: KripkeDyn k => Int -> Tree l -> k l -> k l
 toKS j (Node _ cs) k =
-  foldr (\(c,i) -> toKS i c . addRel j i . 
-                   addStateWithLabel  i (rootLabel c)) 
+  foldr (\(c,i) -> toKS i c . addRel' j i . 
+                   addStateWithLabel'  i (rootLabel c)) 
         k $
         zip cs $ newNodes (length cs) k
 

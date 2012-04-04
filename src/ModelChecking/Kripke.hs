@@ -1,6 +1,6 @@
 module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe,fromJust)
 import Data.List (nub,union)
 import Data.Array (Array,indices,(!))
 
@@ -61,49 +61,57 @@ class Kripke k => KripkeDyn k where
   -- |a empty kripke structure
   empty :: k l 
   -- |add a new state
-  addState :: KripkeState -> k l -> k l 
+  addState :: KripkeState -> k l -> Maybe (k l) 
   -- |add a new state and mark is a initial
-  addInitState :: KripkeState -> k l -> k l 
+  addInitState :: KripkeState -> k l -> Maybe (k l) 
   -- | adds a relation between two already existing states
-  addRel :: KripkeState -> KripkeState -> k l -> k l 
+  addRel :: KripkeState -> KripkeState -> k l -> Maybe (k l) 
   -- | adds a label to a already existing state
-  addLabel :: KripkeState -> l -> k l -> k l 
+  addLabel :: KripkeState -> l -> k l -> Maybe (k l) 
 
   -- |adds a new node with a given label
-  addStateWithLabel :: KripkeState -> l -> k l -> k l
-  addStateWithLabel s l = addLabel s l . addState s 
+  addStateWithLabel :: KripkeState -> l -> k l -> Maybe (k l)
+  addStateWithLabel s l k = addState s k >>= addLabel s l 
 
 instance KripkeDyn KripkeGr where
   empty = KripkeGr G.empty
 
   addState s g
-    | nelem s g = err "addState" s
-    | otherwise = KripkeGr $ G.insNode (s,(Normal,[])) $ graph g
+    | nelem s g = Nothing 
+    | otherwise = Just $ KripkeGr $ G.insNode (s,(Normal,[])) $ graph g
 
   addInitState s g 
-    | nelem s g = err "addInitState" s
-    | otherwise = KripkeGr $ G.insNode (s,(Initial,[])) $ graph g
+    | nelem s g = Nothing 
+    | otherwise = Just $ KripkeGr $ G.insNode (s,(Initial,[])) $ graph g
 
   addRel u v g
-    | nelem u g && nelem v g = KripkeGr $ G.insEdge (u,v,()) $ graph g
-    | otherwise              = 
-        if nelem u g then err "addRel" u else err "addRel" v
+    | nelem u g && nelem v g = Just $ KripkeGr $ G.insEdge (u,v,()) $ graph g
+    | otherwise              = Nothing 
 
   addLabel s l g = case G.match s $ graph g of
-    (Just (pp,n,(t,ls),ss),g') -> KripkeGr $ (pp,n,(t,l:ls),ss) G.& g'
-    _                          -> errN s
+    (Just (pp,n,(t,ls),ss),g') -> Just $ KripkeGr $ (pp,n,(t,l:ls),ss) G.& g'
+    _                          -> Nothing 
 
   addStateWithLabel s l g 
-    | nelem s g = err "addStateWithLabel" s
-    | otherwise = KripkeGr $ G.insNode (s,(Normal,[l])) $ graph g
- 
--- maybe statt error 
-errN :: Show a => a -> b
-errN s = error $ "State "++show s++" is not in kripke structure" 
+    | nelem s g = Nothing 
+    | otherwise = Just $ KripkeGr $ G.insNode (s,(Normal,[l])) $ graph g
 
-err :: Show a => String -> a -> b
-err f s = error $ f++ "|State "++show s++" is already in kripke structure" 
+-- * unsafe version of insert operations
+addState' :: KripkeDyn k => KripkeState -> k l -> k l 
+addState' s = fromJust . addState s
 
+addInitState' :: KripkeDyn k => KripkeState -> k l -> k l 
+addInitState' s = fromJust . addInitState s
+
+addRel' :: KripkeDyn k => KripkeState -> KripkeState -> k l -> k l 
+addRel' u v = fromJust . addRel u v
+
+addLabel' :: KripkeDyn k => KripkeState -> l -> k l -> k l
+addLabel' s l = fromJust . addLabel s l
+
+
+addStateWithLabel' :: KripkeDyn k => KripkeState -> l -> k l -> k l
+addStateWithLabel' s l = fromJust . addStateWithLabel s l
 
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
