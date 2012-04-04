@@ -122,11 +122,10 @@ toAdj parent (Node _ cs) = do
   
 
 data AdjState = AdjState 
-  { sPre :: [(KripkeState,[KripkeState])]
-  , sSucc :: [(KripkeState,[KripkeState])]
-  , sLbl :: [(KripkeState, Label)]
-  , sNewNode :: [KripkeState]
-  }
+  [(KripkeState,[KripkeState])] -- ^ predecessor
+  [(KripkeState,[KripkeState])] -- ^ successor
+  [(KripkeState, Label)]        -- ^ labeling relation
+  [KripkeState]                 -- ^ new states
 
 addStateWithLabelM :: KripkeState -> Label -> State AdjState ()
 addStateWithLabelM s l = do

@@ -1,5 +1,6 @@
 module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
+import qualified Data.IntMap as M
 import Data.Maybe (mapMaybe,fromJust)
 import Data.List (nub,union)
 import Data.Array (Array,indices,(!))
@@ -94,6 +95,8 @@ addStateWithLabel' s l = fromJust . addStateWithLabel s l
 
 -- * Implementations of kripke structure representations
 
+-- ** Arrays
+
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
 
@@ -107,19 +110,60 @@ data NodeType
 
 -- |a adjacency list to represent static kripke structures
 data AdjList a = AdjList 
-  { ps :: Array KripkeState [KripkeState] -- ^ predecessor relation
-  , ss :: Array KripkeState [KripkeState] -- ^ succesor relation
-  , lbls :: Array KripkeState a -- ^ labeling function
-  , initialStates :: [KripkeState] -- ^ initial states
-  } deriving Show
+  (Array KripkeState [KripkeState]) -- ^ predecessor relation
+  (Array KripkeState [KripkeState]) -- ^ succesor relation
+  (Array KripkeState a) -- ^ labeling function
+  [KripkeState] -- ^ initial states
+  deriving Show
 
 instance Kripke AdjList where
   states (AdjList adj _ _ _) = indices adj
-  initStates = initialStates
+  initStates (AdjList _ _ _ is) = is 
   rel i j (AdjList _ ss _ _) = j `elem` (ss ! i)
   labels i (AdjList _ _ l _) = return $ l ! i
   suc (AdjList _ ss _ _) s = ss ! s
   pre (AdjList ps _ _ _) s = ps ! s
+
+-- ** Integer Maps
+
+-- |a 'Context' defines all informations about one node
+data Context l = Context 
+  [KripkeState] -- ^ predecessors
+  [KripkeState] -- ^ successors
+  [l] -- ^ labels
+
+data KripkeIntMap a = KripkeIntMap 
+  [KripkeState]           -- ^ initial states
+  (M.IntMap (Context a))  -- ^ relational structure
+
+instance Kripke KripkeIntMap where
+  states (KripkeIntMap _ m) = M.keys m
+  initStates (KripkeIntMap is _) = is
+  rel u v (KripkeIntMap _ m) =
+    case M.lookup u m of
+      Nothing               -> False
+      Just (Context _ ps _) -> elem v ps
+
+  labels u (KripkeIntMap _ m) =
+    case M.lookup u m of
+      Nothing               -> []
+      Just (Context _ _ ls) -> ls
+
+  pre (KripkeIntMap _ m) u = case M.lookup u m of
+    Nothing               -> []
+    Just (Context ps _ _) -> ps
+
+  suc (KripkeIntMap _ m) u = case M.lookup u m of
+    Nothing               -> []
+    Just (Context _ ss _) -> ss
+
+  rels (KripkeIntMap _ m) =
+    foldr (\(u,(Context p s _)) acc -> (zip [u..] s)++ acc) 
+          [] 
+          (M.assocs m)
+
+
+-- ** Inductive graphs
 
 -- |a wrapper for functional inductive graphs containing 'NodeType's
 newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
