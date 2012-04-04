@@ -2,6 +2,7 @@
 module ModelChecking.AstToKripke
   (AstToKripke(..)
   ,Label(Ident,Constr)
+  ,fromLabel
   )
 where
 import Data.Tree (Tree(..))
@@ -43,9 +44,14 @@ instance Monoid Label where
   Ident i  `mappend` _        = Ident i
   _        `mappend` _        = mempty
 
+-- |returns the underlying string
+fromLabel :: Label -> String
+fromLabel (Constr l) = l
+fromLabel (Ident  l) = l
+
 instance Show Label where
-  show (Constr s) = "C|"++s
-  show (Ident i)  = "I|"++i
+  show (Constr s) = s
+  show (Ident i)  = i
 
 instance AstToKripke KripkeGr where
   astToKripkeIgSubtr cs = treeToKripke . toLabel . dataToTree cs
@@ -89,12 +95,13 @@ instance AstToKripke AdjList where
 treeToAdj :: Tree Label -> AdjList Label
 treeToAdj t@(Node lab _) = 
   let 
-      iState    = AdjState [] [(s,lab)] [s+1,s+2..]
-      (AdjState as ls ms) = execState (toAdj s t) iState
-      s         = 1
-      a         = array (s,head ms-1) as
-      l         = array (s,head ms-1) ls
-  in AdjList a l [s]
+      iState    = AdjState [] [] [(z,lab)] [z+1,z+2..]
+      (AdjState ps ss ls ms) = execState (toAdj z t) iState
+      z         = 1
+      s         = array (z,head ms-1) ss
+      p         = array (z,head ms-1) $ (z,[]):ps
+      l         = array (z,head ms-1) ls
+  in AdjList p s l [z]
 
 toAdj :: KripkeState -> Tree Label -> State AdjState ()
 toAdj parent (Node _ cs) = do
@@ -110,27 +117,28 @@ toAdj parent (Node _ cs) = do
   
 
 data AdjState = AdjState 
-  { sAdj :: [(KripkeState,[KripkeState])]
+  { sPre :: [(KripkeState,[KripkeState])]
+  , sSucc :: [(KripkeState,[KripkeState])]
   , sLbl :: [(KripkeState, Label)]
   , sNewNode :: [KripkeState]
   }
 
 addStateWithLabelM :: KripkeState -> Label -> State AdjState ()
 addStateWithLabelM s l = do
-  (AdjState as ls ns) <- get 
-  put $ AdjState as ((s,l):ls) ns
+  (AdjState ps ss ls ns) <- get 
+  put $ AdjState ps ss ((s,l):ls) ns
 
 addRelM :: KripkeState -> [KripkeState] -> State AdjState ()
 addRelM i xs = do
-  (AdjState as ls ns) <- get 
-  let a = if null xs then (i,i:xs) else (i,xs)
-  put $ AdjState (a:as) ls ns
+  (AdjState ps ss ls ns) <- get 
+  let s = if null xs then (i,i:xs) else (i,xs)
+  put $ AdjState ((map (\x->(x,return i)) xs)++ps) (s:ss) ls ns
 
 getNewNodes :: Int -> State AdjState [KripkeState]
 getNewNodes i = do
-  (AdjState adj lbl ns) <- get
+  (AdjState ps ss lbl ns) <- get
   let (xs,ys) = splitAt i ns
-  put $ AdjState adj lbl ys
+  put $ AdjState ps ss lbl ys
   return xs
 
 

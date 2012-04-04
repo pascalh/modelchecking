@@ -9,8 +9,7 @@ type KripkeState = Int
 
 -- |A interface for kripke structures. Errors are thrown if already existing
 -- nodes are inserted.
--- Minimal definition: 'states','initStates','rel','labels','empty',
--- 'addState', 'addInitState', 'addRel' and 'addLabel'.
+-- Minimal definition: 'states','initStates','rel','labels'
 class Kripke k where
   -- |all states
   states :: k l -> [KripkeState] 
@@ -55,7 +54,8 @@ class Kripke k where
       nub $ suc k s `union` (nub $ concatMap (nub . sucT k) (suc k s))
 
 -- |This class offers an interface to mutable kripke structure, i.e.
--- their content after initial creation.
+-- their content after initial creation. Minimal definition:
+-- 'empty', 'addState', 'addInitState', 'addRel', 'addLabel'
 class Kripke k => KripkeDyn k where
   -- building a kripke structure
   -- |a empty kripke structure
@@ -97,7 +97,13 @@ instance KripkeDyn KripkeGr where
     | nelem s g = err "addStateWithLabel" s
     | otherwise = KripkeGr $ G.insNode (s,(Normal,[l])) $ graph g
  
- 
+-- maybe statt error 
+errN :: Show a => a -> b
+errN s = error $ "State "++show s++" is not in kripke structure" 
+
+err :: Show a => String -> a -> b
+err f s = error $ f++ "|State "++show s++" is already in kripke structure" 
+
 
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
@@ -112,25 +118,24 @@ data NodeType
 
 -- |a adjacency list to represent static kripke structures
 data AdjList a = AdjList 
-  { adjs :: Array KripkeState [KripkeState] -- ^ adjacency relation
+  { ps :: Array KripkeState [KripkeState] -- ^ predecessor relation
+  , ss :: Array KripkeState [KripkeState] -- ^ succesor relation
   , lbls :: Array KripkeState a -- ^ labeling function
   , initialStates :: [KripkeState] -- ^ initial states
   } deriving Show
 
 instance Kripke AdjList where
-  states (AdjList adj _ _) = indices adj
+  states (AdjList adj _ _ _) = indices adj
   initStates = initialStates
-  rel i j (AdjList adj _ _) = j `elem` (adj ! i)
-  labels i (AdjList _ l _) = return $ l ! i
+  rel i j (AdjList _ ss _ _) = j `elem` (ss ! i)
+  labels i (AdjList _ _ l _) = return $ l ! i
+  suc (AdjList _ ss _ _) s = ss ! s
+  pre (AdjList ps _ _ _) s = ps ! s
 
 -- |a wrapper for graphs containing 'NodeType's
 newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
 
-err :: Show a => String -> a -> b
-err f s = error $ f++ "|State "++show s++" is already in kripke structure" 
 
-errN :: Show a => a -> b
-errN s = error $ "State "++show s++" is not in kripke structure" 
 
 instance Kripke KripkeGr where
   states (KripkeGr g) = G.nodes g

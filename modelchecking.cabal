@@ -24,7 +24,7 @@ Library
   
   Build-depends: base ,
                  containers,
-                 fgl > 5.4.2.3,
+                 fgl ==5.4.2.4,
                  graphviz == 2999.12.0.3,
                  array ,
                  mtl == 2.0.1.0
