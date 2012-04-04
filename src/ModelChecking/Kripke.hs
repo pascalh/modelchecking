@@ -4,6 +4,8 @@ import Data.Maybe (mapMaybe,fromJust)
 import Data.List (nub,union)
 import Data.Array (Array,indices,(!))
 
+-- * Interfaces for kripke structures
+
 -- | We use @Int@s to uniquely identify a state in a kripke structure.
 type KripkeState = Int
 
@@ -14,7 +16,7 @@ class Kripke k where
   -- |all states
   states :: k l -> [KripkeState] 
   -- |initial states
-  initStates :: k l -> [Int] 
+  initStates :: k l -> [KripkeState] 
   -- |transition relation
   rel :: KripkeState -> KripkeState -> k l -> Bool 
   -- |state labeling function
@@ -26,11 +28,11 @@ class Kripke k where
 
   -- helper functions
   -- |returns whether given state is already in kripke structure
-  nelem :: KripkeState -> k l -> Bool
-  nelem s = elem s . states
+  elemK :: KripkeState -> k l -> Bool
+  elemK s = elem s . states
 
   -- |returns a specified number of state which are not in kripke structure
-  newNodes :: Int -> k l -> [Int]
+  newNodes :: Int -> k l -> [KripkeState]
   newNodes n k = 
     let m = if null $ states k then 0  else maximum $ states k 
     in take n [m+1,m+2..]
@@ -54,7 +56,7 @@ class Kripke k where
       nub $ suc k s `union` (nub $ concatMap (nub . sucT k) (suc k s))
 
 -- |This class offers an interface to mutable kripke structure, i.e.
--- their content after initial creation. Minimal definition:
+-- their content may change after initial creation. Minimal definition:
 -- 'empty', 'addState', 'addInitState', 'addRel', 'addLabel'
 class Kripke k => KripkeDyn k where
   -- building a kripke structure
@@ -73,30 +75,8 @@ class Kripke k => KripkeDyn k where
   addStateWithLabel :: KripkeState -> l -> k l -> Maybe (k l)
   addStateWithLabel s l k = addState s k >>= addLabel s l 
 
-instance KripkeDyn KripkeGr where
-  empty = KripkeGr G.empty
 
-  addState s g
-    | nelem s g = Nothing 
-    | otherwise = Just $ KripkeGr $ G.insNode (s,(Normal,[])) $ graph g
-
-  addInitState s g 
-    | nelem s g = Nothing 
-    | otherwise = Just $ KripkeGr $ G.insNode (s,(Initial,[])) $ graph g
-
-  addRel u v g
-    | nelem u g && nelem v g = Just $ KripkeGr $ G.insEdge (u,v,()) $ graph g
-    | otherwise              = Nothing 
-
-  addLabel s l g = case G.match s $ graph g of
-    (Just (pp,n,(t,ls),ss),g') -> Just $ KripkeGr $ (pp,n,(t,l:ls),ss) G.& g'
-    _                          -> Nothing 
-
-  addStateWithLabel s l g 
-    | nelem s g = Nothing 
-    | otherwise = Just $ KripkeGr $ G.insNode (s,(Normal,[l])) $ graph g
-
--- * unsafe version of insert operations
+-- ** unsafe version of insert operations
 addState' :: KripkeDyn k => KripkeState -> k l -> k l 
 addState' s = fromJust . addState s
 
@@ -109,9 +89,10 @@ addRel' u v = fromJust . addRel u v
 addLabel' :: KripkeDyn k => KripkeState -> l -> k l -> k l
 addLabel' s l = fromJust . addLabel s l
 
-
 addStateWithLabel' :: KripkeDyn k => KripkeState -> l -> k l -> k l
 addStateWithLabel' s l = fromJust . addStateWithLabel s l
+
+-- * Implementations of kripke structure representations
 
 -- |a state in a kripke structure has a type and a set of labels
 type KripkeLabel a = (NodeType,[a])
@@ -122,7 +103,7 @@ data NodeType
   | Terminal -- ^ optional but useful for control flow graphs
   | Normal   -- ^ a normal node in kripke structure
   | Label    -- ^ a node which will only be processed by printer
-  deriving (Show,Eq,Ord)
+  deriving Eq
 
 -- |a adjacency list to represent static kripke structures
 data AdjList a = AdjList 
@@ -140,10 +121,8 @@ instance Kripke AdjList where
   suc (AdjList _ ss _ _) s = ss ! s
   pre (AdjList ps _ _ _) s = ps ! s
 
--- |a wrapper for graphs containing 'NodeType's
+-- |a wrapper for functional inductive graphs containing 'NodeType's
 newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
-
-
 
 instance Kripke KripkeGr where
   states (KripkeGr g) = G.nodes g
@@ -163,4 +142,25 @@ instance Kripke KripkeGr where
 
   newNodes n (KripkeGr k) = G.newNodes n k
 
+instance KripkeDyn KripkeGr where
+  empty = KripkeGr G.empty
 
+  addState s g
+    | elemK s g = Nothing 
+    | otherwise = Just $ KripkeGr $ G.insNode (s,(Normal,[])) $ graph g
+
+  addInitState s g 
+    | elemK s g = Nothing 
+    | otherwise = Just $ KripkeGr $ G.insNode (s,(Initial,[])) $ graph g
+
+  addRel u v g
+    | elemK u g && elemK v g = Just $ KripkeGr $ G.insEdge (u,v,()) $ graph g
+    | otherwise              = Nothing 
+
+  addLabel s l g = case G.match s $ graph g of
+    (Just (pp,n,(t,ls),ss),g') -> Just $ KripkeGr $ (pp,n,(t,l:ls),ss) G.& g'
+    _                          -> Nothing 
+
+  addStateWithLabel s l g 
+    | elemK s g = Nothing 
+    | otherwise = Just $ KripkeGr $ G.insNode (s,(Normal,[l])) $ graph g
