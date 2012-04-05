@@ -9,7 +9,10 @@ import Data.Tree (Tree(..))
 import Data.Data (Data,gmapQ,showConstr,toConstr)
 import ModelChecking.Kripke (Kripke(..)
                             ,KripkeDyn(..)
-                            ,KripkeState,KripkeGr,AdjList(AdjList)
+                            ,KripkeState
+                            ,KripkeGr
+                            ,KripkeIntMap
+                            ,AdjList(AdjList)
                             ,addLabel'
                             ,addInitState'
                             ,addRel'
@@ -59,6 +62,9 @@ instance Show Label where
   show (Ident i)  = i
 
 instance AstToKripke KripkeGr where
+  astToKripkeIgSubtr cs = treeToKripke . toLabel . dataToTree cs
+
+instance AstToKripke KripkeIntMap where
   astToKripkeIgSubtr cs = treeToKripke . toLabel . dataToTree cs
 
 -- |folds degenerated lists of chars to a single string
