@@ -2,6 +2,7 @@ module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
 import qualified Data.IntMap as M
 import Data.Maybe (mapMaybe,fromJust)
+import Control.Monad(guard)
 import Data.List (nub,union)
 import Data.Array (Array,indices,(!))
 
@@ -158,10 +159,38 @@ instance Kripke KripkeIntMap where
     Just (Context _ ss _) -> ss
 
   rels (KripkeIntMap _ m) =
-    foldr (\(u,(Context p s _)) acc -> (zip [u..] s)++ acc) 
+    foldr (\(u,(Context _ s _)) acc -> (zip [u..] s)++ acc) 
           [] 
           (M.assocs m)
 
+
+instance KripkeDyn KripkeIntMap where
+  empty = KripkeIntMap [] M.empty 
+
+  addState s (KripkeIntMap is m) = case M.lookup s m of
+    Just _  -> Nothing
+    Nothing -> Just $ KripkeIntMap is (M.insert s (Context [] [] []) m)
+
+  addInitState s k = do
+    (KripkeIntMap is m) <- addState s k
+    return $ KripkeIntMap (s:is) m
+  
+  addRel u v (KripkeIntMap is m) = do 
+    guard $ M.member u m &&  M.member v m
+    return $ KripkeIntMap is $ 
+      M.adjust (\(Context p s l) -> Context p (v:s) l) u $ 
+      M.adjust (\(Context p s l) -> Context (u:p) s l) v m
+
+  addLabel s l (KripkeIntMap is m)
+    | M.notMember s m = Nothing
+    | otherwise =  
+      Just $ KripkeIntMap is $ 
+        M.adjust (\(Context ps ss ls) -> Context ps ss (l:ls)) s m
+
+  addStateWithLabel s l (KripkeIntMap is m) 
+    | M.member s m = Nothing
+    | otherwise    =
+      Just $ KripkeIntMap is $ M.insert s (Context [] [] [l]) m
 
 -- ** Inductive graphs
 
