@@ -15,7 +15,7 @@ Cabal-version:       >=1.9.2
 Library
   ghc-options: -Wall
   Exposed-modules:   ModelChecking.Logic.Ctl,
-                     ModelChecking.Logic.Saql,
+                     ModelChecking.Logic.TL,
                      ModelChecking.Kripke, 
                      ModelChecking.KripkePrint,
                      ModelChecking.AstToKripke,
