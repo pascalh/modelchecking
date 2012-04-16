@@ -28,7 +28,7 @@ showKripkeInDialog :: (K.Kripke k,Show l) => k l -> IO ()
 showKripkeInDialog k = outputKripke defaultSettings k >> return ()
 
 -- |shows a kripke structure using 'show' to create state labels.
--- The result will be presented in a new dialog window.
+-- The result will be saved as a png file at given location. 
 saveKripke :: (K.Kripke k,Show l) => FilePath -> k l -> IO () 
 saveKripke file k = do
   outputKripke (defaultSettings {outputMode = File file }) k
