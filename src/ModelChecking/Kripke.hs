@@ -1,10 +1,13 @@
 module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
 import qualified Data.IntMap as M
+import Data.Tree (Tree(..))
+
 import Data.Maybe (mapMaybe,fromJust)
 import Control.Monad(guard)
 import Data.List (nub,union)
 import Data.Array (Array,indices,(!))
+import qualified Data.Foldable as F
 
 -- * Interfaces for kripke structures
 
@@ -95,6 +98,20 @@ addStateWithLabel' :: KripkeDyn k => KripkeState -> l -> k l -> k l
 addStateWithLabel' s l = fromJust . addStateWithLabel s l
 
 -- * Implementations of kripke structure representations
+
+-- ** Rose trees 'Tree'
+
+newtype KripkeTree a = KripkeTree (Tree (KripkeState,a))
+
+instance Kripke KripkeTree where
+  states (KripkeTree t) = F.foldr (\(i,_) acc -> i:acc) [] t
+  initStates (KripkeTree (Node (i,_) _)) = [i]
+  rel x y (KripkeTree (Node (i,_) cs)) 
+    | x==i      = any (\(Node (j,_) _) -> j==y) cs
+    | otherwise = any (\c -> rel x y (KripkeTree c)) cs
+  labels s (KripkeTree (Node (i,l) cs))
+    | s==i      = [l]
+    | otherwise = concatMap (\c -> labels s (KripkeTree c)) cs
 
 -- ** Arrays
 
