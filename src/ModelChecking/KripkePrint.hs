@@ -1,4 +1,6 @@
-module ModelChecking.KripkePrint(showKripke) where
+module ModelChecking.KripkePrint
+  (outputKripke,showKripkeInDialog,saveKripke) 
+  where
 
 import qualified ModelChecking.Kripke as K
 
@@ -6,18 +8,51 @@ import Data.GraphViz hiding (toNode)
 import Data.Graph.Inductive
 import Data.GraphViz.Attributes.Complete
 
--- |transforms a kripke structure to dotgraph representation
-toDotgraph :: (K.Kripke k,Show l) => Settings -> k l -> IO (DotGraph Node)
-toDotgraph s g = do
+-- * main functions and offered interface
+
+-- |a kripke structure to dotgraph representation
+outputKripke :: (K.Kripke k,Show l) => Settings -> k l -> IO ()
+outputKripke s g = do
     let g_dot = DotGraph True True Nothing dstmts 
-    runGraphvizCanvas' g_dot Xlib
-    return g_dot
+    case outputMode s of
+      File file -> runGraphviz g_dot Png file >> return () 
+      XLib      -> runGraphvizCanvas' g_dot Xlib     
   where
   dstmts = DotStmts [nodeAttrs s,edgeAttrs s] [] dnodes dedges 
   dnodes = map (toNode g) $ K.states g 
   dedges =  map toEdge  $ K.rels g
 
--- |transforms a component to dotnode
+-- |shows a kripke structure using 'show' to create state labels.
+-- The result will be presented in a new dialog window.
+showKripkeInDialog :: (K.Kripke k,Show l) => k l -> IO () 
+showKripkeInDialog k = outputKripke defaultSettings k >> return ()
+
+-- |shows a kripke structure using 'show' to create state labels.
+-- The result will be presented in a new dialog window.
+saveKripke :: (K.Kripke k,Show l) => FilePath -> k l -> IO () 
+saveKripke file k = do
+  outputKripke (defaultSettings {outputMode = File file }) k
+  return ()
+
+-- * Settings
+
+-- |print settings for a kripke structure
+data Settings = Settings 
+              { fontSize :: Double -- ^font size of kripke labels
+              , outputMode :: Mode
+              } 
+
+-- |data type for output modes
+data Mode = XLib -- ^ show kripke structure in a dialog 
+          | File FilePath -- ^ save kripke structure to a file
+
+-- |default settings
+defaultSettings :: Settings
+defaultSettings = Settings 9 XLib
+
+-- * transforming a kripke structure to a dot graph
+
+-- |transforms a state to dotnode
 toNode :: (K.Kripke k, Show l) 
        => k l -> K.KripkeState -> DotNode K.KripkeState
 toNode g n = DotNode n [Center True, Label $ toLabelValue m ] where
@@ -48,16 +83,4 @@ edgeAttrs s = EdgeAttrs
 edgeAtt ::[Attribute]
 edgeAtt = [Dir Forward]
 
--- |shows a kripke structure using 'show' to create state labels
-showKripke :: (K.Kripke k,Show l) => k l -> IO () 
-showKripke k = toDotgraph defaultSettings k >> return ()
-
--- |default settings
-defaultSettings :: Settings
-defaultSettings = Settings 9 
-
--- |print settings for a kripke structure
-data Settings = Settings 
-              { fontSize :: Double -- ^font size of kripke labels
-              } 
 
