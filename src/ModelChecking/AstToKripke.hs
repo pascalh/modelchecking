@@ -6,7 +6,7 @@ module ModelChecking.AstToKripke
   )
 where
 import Data.Tree (Tree(..))
-import Data.Data (Data,gmapQ,showConstr,toConstr)
+import Data.Data (Data,gmapQ,gmapQi,showConstr,toConstr)
 import ModelChecking.Kripke (Kripke(..)
                             ,KripkeDyn(..)
                             ,KripkeState
@@ -19,9 +19,8 @@ import ModelChecking.Kripke (Kripke(..)
                             ,addStateWithLabel'
                             )
 import Data.Maybe (mapMaybe)
-import Data.Monoid (Monoid(..))
-import Data.Foldable (fold)
 import "mtl" Control.Monad.State
+import Data.Typeable(cast)
 import Data.Array(array)
 
 -- |'AstToKripke' offers an interface to create kripke structures containing 
@@ -43,14 +42,7 @@ class Kripke k => AstToKripke k where
 -- identified by 'Ident'.
 data Label = Constr String -- ^ a constructors name
            | Ident  String -- ^ a identifier in syntax tree
-           deriving Eq
-
-instance Monoid Label where
-  mempty = Ident []
-  Ident i1 `mappend` Ident i2 = Ident $ i1++i2
-  _        `mappend` Ident i  = Ident i
-  Ident i  `mappend` _        = Ident i
-  _        `mappend` _        = mempty
+           deriving (Eq,Ord)
 
 -- |returns the underlying string
 fromLabel :: Label -> String
@@ -58,38 +50,14 @@ fromLabel (Constr l) = l
 fromLabel (Ident  l) = l
 
 instance Show Label where
-  show (Constr s) = s
-  show (Ident i)  = i
+  show (Constr s) = "(c) "++s
+  show (Ident i)  = "(i) "++i
 
 instance AstToKripke KripkeGr where
-  astToKripkeIgSubtr cs = treeToKripke . toLabel . dataToTree cs
+  astToKripkeIgSubtr cs = treeToKripke . termToTree cs
 
 instance AstToKripke KripkeIntMap where
-  astToKripkeIgSubtr cs = treeToKripke . toLabel . dataToTree cs
-
--- |folds degenerated lists of chars to a single string
--- > (Ident 'f': Ident'o':Ident'o':[]) ==> Ident "foo"
-shrink :: Tree Label -> Tree Label
-shrink n = Node (fold n) []
-
--- |builds a tree which distinguishes between identifiers and 
--- constructor names in abstract syntax tress
-toLabel :: Tree String -> Tree Label
-toLabel (Node ('\'':c:'\'':[]) cs)
-  | isIdent c = Node (Ident [c]) (map toLabel cs)
-toLabel (Node "(:)" cs) 
-  | any isCharacter cs = shrink $ Node (Constr "(:)") (map toLabel cs)
-  | otherwise          = Node (Constr "(:)") (map toLabel cs) 
-toLabel (Node i cs) = Node (Constr i) (map toLabel cs)
-
--- |returns whether label of current tree represents a character
-isCharacter :: Tree String -> Bool
-isCharacter (Node ('\'':_:'\'':[]) _) = True
-isCharacter _                         = False
-
--- |returns whether char represents an identifier
-isIdent :: Char -> Bool
-isIdent c = c `elem` ['a'..'z']++['A'..'Z']++['1'..'9']++['0']++[' ','_']
+  astToKripkeIgSubtr cs = treeToKripke . termToTree cs
 
 -- |transforms a tree into a kripke structure where every former tree leafs @l@
 -- lies on a infinite path @(l,l,l,l)@. This is needed for the property
@@ -101,7 +69,7 @@ treeToKripke t =
   in foldr (\l -> addRel' l l) g $ leafs g
 
 instance AstToKripke AdjList where
-  astToKripkeIgSubtr cs = treeToAdj . toLabel . dataToTree cs
+  astToKripkeIgSubtr cs = treeToAdj . termToTree cs --toLabel . dataToTree cs
 
 treeToAdj :: Tree Label -> AdjList Label
 treeToAdj t@(Node lab _) = 
@@ -160,11 +128,29 @@ toKS j (Node _ cs) k =
         k $
         zip cs $ newNodes (length cs) k
 
--- |creates a tree labeled with constructor names
-dataToTree :: Data a => [String] -> a -> Tree String 
-dataToTree cs t = let c = showConstr $ toConstr t in
-  if elem c cs then Node [] []
-               else Node c (gmapQ (dataToTree cs) t) 
+termToTree :: Data a => [String] -> a -> Tree Label
+termToTree cs t = case cast t::Maybe String of
+  Nothing -> case cast t :: Maybe Char of
+        Nothing -> Node (Constr $ showConstr $ toConstr t) 
+                        (gmapQ (termToTree cs) t)
+        Just _  -> Node (Ident $ showConstr $ toConstr t) 
+                                  (gmapQ (termToTree cs) t)
+  Just _  -> Node (Ident (toStr t)) [] 
+-- die (:) anwendungen sind uninteressant
+
+-- soStr( (:) 'a' ((:) 'b' ((:) 'c' []))) ==> "abc"
+toStr :: Data a => a -> [Char]
+toStr t 
+  | (showConstr (toConstr t)) == "(:)" = 
+      (gmapQi 0 getChar1 t) : (gmapQi 1 toStr t) 
+  | otherwise = case showConstr (toConstr t) of
+                  ['\'',c,'\''] -> [c]
+                  _             -> []
+
+-- [\',g,\'] ==> g
+getChar1 :: Data a => a -> Char
+getChar1 t = case cast t :: Maybe Char of
+  Just _  -> (showConstr $ toConstr t)!!1
 
 -- |returns all states without a successor. 'leafs' will return an empty
 -- list for correct kripke structures. We need all leafs here, in order
