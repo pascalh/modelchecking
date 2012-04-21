@@ -64,8 +64,7 @@ instance AstToKripke KripkeIntMap where
 -- of a kripke structure that every state has a successor.
 treeToKripke :: KripkeDyn k => Tree l -> k l
 treeToKripke t = 
-  let s = 1 
-  in g = toKS s t $ addLabel' s (rootLabel t) $ addInitState' s empty
+  let s = 1 in toKS s t $ addLabel' s (rootLabel t) $ addInitState' s empty
 
 instance AstToKripke AdjList where
   astToKripkeIgSubtr cs = treeToAdj . termToTree cs 

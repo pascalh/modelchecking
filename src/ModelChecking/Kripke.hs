@@ -14,10 +14,9 @@ import qualified Data.Foldable as F
 -- | We use @Int@s to uniquely identify a state in a kripke structure.
 type KripkeState = Int
 
--- |A interface for kripke structures. Errors are thrown if already existing
--- nodes are inserted.
+-- |A interface for kripke structures. 
 -- Minimal definition: 'states','initStates','rel','labels'
-class Kripke k where
+class Functor k => Kripke k where
   -- |all states
   states :: k l -> [KripkeState] 
   -- |initial states
@@ -103,7 +102,11 @@ addStateWithLabel' s l = fromJust . addStateWithLabel s l
 
 newtype KripkeTree a = KripkeTree (Tree (KripkeState,a))
 
-instance Kripke KripkeTree where
+instance Functor KripkeTree where
+  fmap f (KripkeTree t) = KripkeTree $ g t where
+     g (Node (i,l) cs) = Node (i,f l) (map g cs) 
+
+instance Kripke KripkeTree where      
   states (KripkeTree t) = F.foldr (\(i,_) acc -> i:acc) [] t
   initStates (KripkeTree (Node (i,_) _)) = [i]
   rel x y (KripkeTree (Node (i,_) cs)) 
@@ -142,6 +145,9 @@ instance Kripke AdjList where
   suc (AdjList _ ss _ _) s = ss ! s
   pre (AdjList ps _ _ _) s = ps ! s
 
+instance Functor AdjList where
+  fmap f (AdjList ps ss ls is) = AdjList ps ss (fmap f ls) is
+
 -- ** Integer Maps
 
 -- |a 'Context' defines all informations about one node
@@ -153,6 +159,10 @@ data Context l = Context
 data KripkeIntMap a = KripkeIntMap 
   [KripkeState]           -- ^ initial states
   (M.IntMap (Context a))  -- ^ relational structure
+
+instance Functor KripkeIntMap where
+  fmap f (KripkeIntMap is m) = 
+    KripkeIntMap is $ fmap (\(Context ps ss ls)-> Context ps ss (map f ls)) m
 
 instance Kripke KripkeIntMap where
   states (KripkeIntMap _ m) = M.keys m
@@ -213,6 +223,10 @@ instance KripkeDyn KripkeIntMap where
 
 -- |a wrapper for functional inductive graphs containing 'NodeType's
 newtype KripkeGr a = KripkeGr {graph :: G.Gr (KripkeLabel a) ()}
+
+instance Functor KripkeGr where
+  fmap f (KripkeGr gr) = KripkeGr $ G.gmap g gr where 
+    g (ps,n,(t,ls),ss) =(ps,n,(t,map f ls),ss) 
 
 instance Kripke KripkeGr where
   states (KripkeGr g) = G.nodes g
