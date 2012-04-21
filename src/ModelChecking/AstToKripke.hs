@@ -65,11 +65,10 @@ instance AstToKripke KripkeIntMap where
 treeToKripke :: KripkeDyn k => Tree l -> k l
 treeToKripke t = 
   let s = 1 
-      g = toKS s t $ addLabel' s (rootLabel t) $ addInitState' s empty
-  in foldr (\l -> addRel' l l) g $ leafs g
+  in g = toKS s t $ addLabel' s (rootLabel t) $ addInitState' s empty
 
 instance AstToKripke AdjList where
-  astToKripkeIgSubtr cs = treeToAdj . termToTree cs --toLabel . dataToTree cs
+  astToKripkeIgSubtr cs = treeToAdj . termToTree cs 
 
 treeToAdj :: Tree Label -> AdjList Label
 treeToAdj t@(Node lab _) = 
