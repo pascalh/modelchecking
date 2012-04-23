@@ -33,7 +33,7 @@ Library
 benchmark bench-builder-all
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
-  main-is:          BenchAll.hs
+  main-is:          BenchKripke.hs
   build-depends:    base, deepseq, ghc-prim,
                     criterion , derive
   include-dirs:     include
@@ -41,3 +41,13 @@ benchmark bench-builder-all
                     -fmax-simplifier-iterations=10
                     -fdicts-cheap
                     -fspec-constr-count=6
+
+test-suite basic
+    type: exitcode-stdio-1.0
+    Hs-Source-Dirs: test 
+    main-is: Main.hs
+    build-depends: base, 
+                   test-framework, 
+                   test-framework-hunit,
+                   modelchecking == 0.1,
+                   HUnit
