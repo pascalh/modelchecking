@@ -6,7 +6,8 @@ module ModelChecking.AstToKripke
   )
 where
 import Data.Tree (Tree(..))
-import Data.Data (Data,gmapQ,gmapQi,showConstr,toConstr)
+import Data.Data (Data,gmapQ,showConstr,toConstr)
+import Data.Generics.Text(gshow)
 import ModelChecking.Kripke (Kripke(..)
                             ,KripkeDyn(..)
                             ,KripkeState
@@ -18,7 +19,6 @@ import ModelChecking.Kripke (Kripke(..)
                             ,addRel'
                             ,addStateWithLabel'
                             )
-import Data.Maybe (mapMaybe)
 import "mtl" Control.Monad.State
 import Data.Typeable(cast)
 import Data.Array(array)
@@ -107,8 +107,7 @@ addStateWithLabelM s l = do
 addRelM :: KripkeState -> [KripkeState] -> State AdjState ()
 addRelM i xs = do
   (AdjState ps ss ls ns) <- get 
-  let s = if null xs then (i,i:xs) else (i,xs)
-  put $ AdjState ((map (\x->(x,return i)) xs)++ps) (s:ss) ls ns
+  put $ AdjState ((map (\x->(x,return i)) xs)++ps) ((i,xs):ss) ls ns
 
 getNewNodes :: Int -> State AdjState [KripkeState]
 getNewNodes i = do
@@ -128,32 +127,10 @@ toKS j (Node _ cs) k =
 
 termToTree :: Data a => [String] -> a -> Tree Label
 termToTree cs t = case cast t::Maybe String of
-  Nothing -> case cast t :: Maybe Char of
-        Nothing -> Node (Constr $ showConstr $ toConstr t) 
-                        (gmapQ (termToTree cs) t)
-        Just _  -> Node (Ident $ showConstr $ toConstr t) 
-                                  (gmapQ (termToTree cs) t)
-  Just _  -> Node (Ident (toStr t)) [] 
--- die (:) anwendungen sind uninteressant
+  Nothing -> Node (Constr $ showConstr $ toConstr t) 
+                  (gmapQ (termToTree cs) t)
+  Just _  -> Node (Ident (removeEsc $ gshow t)) [] 
 
--- soStr( (:) 'a' ((:) 'b' ((:) 'c' []))) ==> "abc"
-toStr :: Data a => a -> [Char]
-toStr t 
-  | (showConstr (toConstr t)) == "(:)" = 
-      (gmapQi 0 getChar1 t) : (gmapQi 1 toStr t) 
-  | otherwise = case showConstr (toConstr t) of
-                  ['\'',c,'\''] -> [c]
-                  _             -> []
-
--- [\',g,\'] ==> g
-getChar1 :: Data a => a -> Char
-getChar1 t = case cast t :: Maybe Char of
-  Just _  -> (showConstr $ toConstr t)!!1
-
--- |returns all states without a successor. 'leafs' will return an empty
--- list for correct kripke structures. We need all leafs here, in order
--- to create a correct kripke structure.
-leafs :: Kripke k => k l -> [KripkeState]
-leafs k =
-  mapMaybe (\s -> if null $ suc k s then Just s else Nothing) $ states k
+removeEsc :: String -> String
+removeEsc = filter (/='\"')
 
