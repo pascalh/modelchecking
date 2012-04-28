@@ -3,6 +3,7 @@ module ModelChecking.AstToKripke
   (AstToKripke(..)
   ,Label(Ident,Constr)
   ,fromLabel
+  ,termToTree
   )
 where
 import Data.Tree (Tree(..))
@@ -50,8 +51,8 @@ fromLabel (Constr l) = l
 fromLabel (Ident  l) = l
 
 instance Show Label where
-  show (Constr s) = "(c) "++s
-  show (Ident i)  = "(i) "++i
+  show (Constr s) = s
+  show (Ident i)  = i
 
 instance AstToKripke KripkeGr where
   astToKripkeIgSubtr cs = treeToKripke . termToTree cs
@@ -127,7 +128,7 @@ toKS j (Node _ cs) k =
 
 termToTree :: Data a => [String] -> a -> Tree Label
 termToTree cs t = case cast t::Maybe String of
-  Nothing -> Node (Constr $ showConstr $ toConstr t) 
+  Nothing -> Node (Constr $ removeEsc $ showConstr $ toConstr t) 
                   (gmapQ (termToTree cs) t)
   Just _  -> Node (Ident (removeEsc $ gshow t)) [] 
 

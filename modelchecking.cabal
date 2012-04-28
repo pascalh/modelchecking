@@ -48,7 +48,10 @@ test-suite basic
     Hs-Source-Dirs: test 
     main-is: Main.hs
     build-depends: base, 
+                   containers == 0.4.2.0,
                    test-framework, 
                    test-framework-hunit,
+                   test-framework-quickcheck2,
                    modelchecking == 0.1,
-                   HUnit
+                   HUnit, 
+                   QuickCheck == 2.4.2
