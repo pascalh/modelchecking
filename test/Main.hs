@@ -132,8 +132,8 @@ instance Arbitrary Test where
    [ return Unit
    , Unary <$> arbitrary
    , Binary <$> arbitrary <*> arbitrary
-   , Nary <$> listOf arbitrary 
-   , Id <$> (listOf $ elements $ ['a'..'z']++['A'..'Z'])
+   , frequency [(1,Nary <$> listOf arbitrary),(6,Nary <$> return [])]
+   , Id <$> (listOf1 $ elements $ ['a'..'z']++['A'..'Z'])
    , Number <$> arbitrary
    ]
 
