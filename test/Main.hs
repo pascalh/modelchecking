@@ -1,7 +1,8 @@
 {-# LANGUAGE NoMonomorphismRestriction, DeriveDataTypeable #-}
 module Main where
 
-import Test.Framework (defaultMain, testGroup,TestName,Test)
+import Test.Framework (defaultMainWithOpts, testGroup,TestName,Test)
+import Test.Framework.Runners.Options 
 import Test.Framework.Providers.HUnit(testCase)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (labels)
@@ -15,11 +16,21 @@ import Control.Applicative((<$>),Applicative(..))
 import Data.List(sort)
 import Data.Tree(Tree(Node))
 import Data.Set(fromList)
+import Data.Monoid(mempty)
 
 import Data.Data(Data)
 import Data.Typeable(Typeable)
 
-main = defaultMain [testSize,testRels,testLbls{-,testProps-}]--,testBetween]
+main = defaultMainWithOpts
+         [testSize
+         ,testRels
+         ,testLbls
+         ,testProps
+         --,testBetween
+         ]
+         options
+
+options = mempty { ropt_color_mode = Just ColorAlways }
 
 -- * simple hunit tests
 
@@ -170,23 +181,25 @@ instance Arbitrary Term where
     , Id <$> (listOf1 $ elements $ ['a'..'z']++['A'..'Z'])
     , Number <$> arbitrary 
     ]
--- ** black box testing 'termToTree' against 'testToTree'
 
-prop_tree_equal :: Term -> Bool
-prop_tree_equal term = (testToTree term) == (termToTree [] term)
+-- ** black box testing 'termToTree' against 'testToTree'
 
 testProps = testGroup "Properties" [testTermToTree]
 
-testTermToTree = testProperty "termToTree" prop_tree_equal
+testTermToTree = testProperty "termToTree" prop_tree_equal where
+
+  prop_tree_equal :: Term -> Bool
+  prop_tree_equal term = testToTree term == termToTree [] term
 
 -- ** testing isomorphy between different kripke implementations
 
 testBetween = testGroup "Properties between implementations" [testInit,testIso]
 
 testIso = testGroup "Isomorphic kripke strucutes" 
-                      [testProperty "adj <-> intmap" prop_iso_adj_map
-                      ,testProperty "intmap <-> gr"  prop_iso_map_gr
-                      ,testProperty "gr <-> adj"     prop_iso_gr_adj
+                      [--testProperty "adj <-> intmap" prop_iso_adj_map
+                      --,testProperty "intmap <-> gr"  prop_iso_map_gr
+                      --,
+                      testProperty "gr <-> adj"     prop_iso_gr_adj
                       ]
 
 testInit = testProperty "initial state sets" prop_Init
@@ -231,7 +244,6 @@ kripkeIso :: (Kripke k1,Kripke k2)
 kripkeIso s1 k1 s2 k2 = 
   let suc1 = sort $ suc k1 s1
       suc2 = sort $ suc k2 s2
-  in (labels s1 k1) == (labels s2 k2) && 
-     suc1 == suc2 &&
+  in (sort $ labels s1 k1) == (sort $ labels s2 k2) && 
      and (zipWith (\x1 x2 -> kripkeIso x1 k1 x2 k2) suc1 suc2)
   

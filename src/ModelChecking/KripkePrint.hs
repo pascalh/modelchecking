@@ -58,7 +58,7 @@ toNode :: (K.Kripke k, Show l)
 toNode g n = DotNode n [Center True, Label $ toLabelValue m ] where
   m :: String
   m = case K.labels n g of
-    (l:_) -> show n ++ "|"++show l
+    (l:_) -> show n++"|"++show l
     _     -> []
 
 -- |creates a directed edge

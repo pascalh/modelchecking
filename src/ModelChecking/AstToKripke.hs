@@ -45,14 +45,14 @@ data Label = Constr String -- ^ a constructors name
            | Ident  String -- ^ a identifier in syntax tree
            deriving (Eq,Ord)
 
+instance Show Label where
+  show (Constr c) ="c_"++c
+  show (Ident i)  ="i_"++i
+
 -- |returns the underlying string
 fromLabel :: Label -> String
 fromLabel (Constr l) = l
 fromLabel (Ident  l) = l
-
-instance Show Label where
-  show (Constr s) = s
-  show (Ident i)  = i
 
 instance AstToKripke KripkeGr where
   astToKripkeIgSubtr cs = treeToKripke . termToTree cs
