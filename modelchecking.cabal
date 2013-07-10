@@ -22,13 +22,13 @@ Library
                      ModelChecking.Logic
   Hs-Source-Dirs: src
   
-  Build-depends: base ,
-                 containers,
+  Build-depends: base == 4.6.0.0 ,
+                 containers == 0.5.0.0 ,
                  fgl ==5.4.2.4,
-                 graphviz == 2999.12.0.3,
-                 array ,
-                 syb == 0.3.6,
-                 mtl == 2.0.1.0
+                 graphviz , 
+                 array  == 0.4.0.1,
+                 syb == 0.3.7 , 
+                 mtl == 2.1.2
 
 
 benchmark bench-builder-all
@@ -47,11 +47,11 @@ test-suite basic
     type: exitcode-stdio-1.0
     Hs-Source-Dirs: test 
     main-is: Main.hs
-    build-depends: base, 
-                   containers == 0.4.2.0,
-                   test-framework, 
-                   test-framework-hunit,
-                   test-framework-quickcheck2,
+    build-depends: base == 4.6.0.0, 
+                   containers == 0.5.0.0,
+                   test-framework == 0.8, 
+                   test-framework-hunit == 0.3.0,
+                   test-framework-quickcheck2 == 0.3.0.1,
                    modelchecking == 0.1,
-                   HUnit, 
+                   HUnit == 1.2.5.1, 
                    QuickCheck == 2.4.2
