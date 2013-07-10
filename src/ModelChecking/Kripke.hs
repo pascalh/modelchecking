@@ -1,6 +1,6 @@
 module ModelChecking.Kripke where
 import qualified Data.Graph.Inductive as G 
-import qualified Data.IntMap as M
+import qualified Data.IntMap.Strict as M
 import Data.Tree (Tree(..))
 
 import Data.Maybe (mapMaybe,fromJust)
@@ -205,8 +205,8 @@ instance KripkeDyn KripkeIntMap where
   addRel u v (KripkeIntMap is m) = do 
     guard $ M.member u m &&  M.member v m
     return $ KripkeIntMap is $ 
-      M.adjust (\(Context p s l) -> Context p (v:s) l) u $ 
-      M.adjust (\(Context p s l) -> Context (u:p) s l) v m
+      M.adjust (\(Context p1 s1 l1) -> Context p1 (v:s1) l1) u $ 
+      M.adjust (\(Context p2 s2 l2) -> Context (u:p2) s2 l2) v m
 
   addLabel s l (KripkeIntMap is m)
     | M.notMember s m = Nothing
