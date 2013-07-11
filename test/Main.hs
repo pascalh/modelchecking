@@ -6,7 +6,7 @@ import Test.Framework.Runners.Options
 import Test.Framework.Providers.HUnit(testCase)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (labels)
-import Test.HUnit((@=?))
+import Test.HUnit((@=?),assertBool)
 
 import ModelChecking.Kripke
   (Kripke(..),AdjList,KripkeIntMap,KripkeGr,KripkeState)
@@ -26,11 +26,11 @@ main = defaultMainWithOpts
          ,testRels
          ,testLbls
          ,testProps
-         --,testBetween
+         ,testBetween
          ]
          options
 
-options = mempty { ropt_color_mode = Just ColorAlways }
+options = mempty -- { ropt_color_mode = Just ColorAlways }
 
 -- * simple hunit tests
 
@@ -131,7 +131,6 @@ krAdj = zip3 ks ts expectedValues
 krGrs ::[(KripkeGr Label,String,Expected)]
 krGrs = zip3 ks ts expectedValues
 
-
 krMap ::[(KripkeIntMap Label,String,Expected)]
 krMap  = zip3 ks ts expectedValues
 
@@ -184,22 +183,48 @@ instance Arbitrary Term where
 
 -- ** black box testing 'termToTree' against 'testToTree'
 
-testProps = testGroup "Properties" [testTermToTree]
+testProps = testGroup "Properties" [testTermToTree] where
 
-testTermToTree = testProperty "termToTree" prop_tree_equal where
+  testTermToTree = testProperty "termToTree" prop_tree_equal 
 
   prop_tree_equal :: Term -> Bool
   prop_tree_equal term = testToTree term == termToTree [] term
 
 -- ** testing isomorphy between different kripke implementations
 
-testBetween = testGroup "Properties between implementations" [testInit,testIso]
+testBetween = testGroup "Properties between implementations" 
+                        [{-testInit,testIso,-}testIsoExamples] 
 
-testIso = testGroup "Isomorphic kripke strucutes" 
-                      [--testProperty "adj <-> intmap" prop_iso_adj_map
-                      --,testProperty "intmap <-> gr"  prop_iso_map_gr
-                      --,
-                      testProperty "gr <-> adj"     prop_iso_gr_adj
+-- *** use example terms to test iso
+
+testIsoExamples = testGroup "Isomorphic kripke structures (example values)" 
+                            [tests_gr_adj,tests_map_adj,tests_map_gr] where
+    tests_gr_adj = 
+      testGroup "gr <-> adj"  $
+                zipWith3 f (ks :: [KripkeGr Label]) 
+                           (ks :: [AdjList  Label]) 
+                           [0..]
+
+    tests_map_adj = 
+      testGroup "map <-> adj"  $
+                zipWith3 f (ks :: [KripkeIntMap Label]) 
+                           (ks :: [AdjList  Label]) 
+                           [0..]
+
+    tests_map_gr = 
+      testGroup "map <-> gr" $
+                zipWith3 f (ks :: [KripkeIntMap Label]) 
+                           (ks :: [KripkeGr Label]) 
+                           [0..]
+
+    f k1 k2 i = testCase ("Term "++ show i) (assertBool ""  $ iso k1 k2)
+
+-- *** use arbitrary terms
+
+testIso = testGroup "Isomorphic kripke structures (random data)" 
+                      [testProperty "adj <-> intmap" (prop_iso_adj_map :: Term -> Bool)
+                      ,testProperty "intmap <-> gr"  (prop_iso_map_gr :: Term -> Bool)
+                      ,testProperty "gr <-> adj"     (prop_iso_gr_adj :: Term -> Bool)
                       ]
 
 testInit = testProperty "initial state sets" prop_Init
@@ -220,13 +245,13 @@ prop_Init t =
       g = toGr t
   in initial a i && initial i g && initial g a 
 
-prop_iso_adj_map :: Term -> Bool
+prop_iso_adj_map :: Data t => t -> Bool
 prop_iso_adj_map t = iso (toAdj t) (toIntMap t)
 
-prop_iso_map_gr :: Term -> Bool
+prop_iso_map_gr :: Data t => t -> Bool
 prop_iso_map_gr t = iso (toIntMap t) (toGr t)
 
-prop_iso_gr_adj :: Term -> Bool
+prop_iso_gr_adj :: Data t => t -> Bool
 prop_iso_gr_adj t = iso (toGr t) (toAdj t)
 
 -- ** desired properties of kripke structures
@@ -235,15 +260,14 @@ initial :: (Kripke k1,Kripke k2) => k1 Label -> k2 Label -> Bool
 initial k1 k2 = sort(initStates k1) == (sort $ initStates k2) 
 
 iso :: (Kripke k1, Kripke k2) => k1 Label -> k2 Label -> Bool
-iso k1 k2 = and $ zipWith (\x1 x2 -> kripkeIso x1 k1 x2 k2) 
-                               (initStates k1) 
-                               (initStates k2) 
-
-kripkeIso :: (Kripke k1,Kripke k2) 
-  => KripkeState -> k1 Label -> KripkeState -> k2 Label -> Bool
-kripkeIso s1 k1 s2 k2 = 
-  let suc1 = sort $ suc k1 s1
-      suc2 = sort $ suc k2 s2
-  in (sort $ labels s1 k1) == (sort $ labels s2 k2) && 
-     and (zipWith (\x1 x2 -> kripkeIso x1 k1 x2 k2) suc1 suc2)
-  
+iso k1 k2 = and $ 
+  zipWith (\x1 x2 -> kripkeIso x1 k1 x2 k2) (initStates k1) (initStates k2) 
+  where
+    kripkeIso :: (Kripke k1,Kripke k2) 
+      => KripkeState -> k1 Label -> KripkeState -> k2 Label -> Bool
+    kripkeIso s1 k1 s2 k2 = 
+      let suc1 = sort $ suc k1 s1
+          suc2 = sort $ suc k2 s2
+      in (sort $ labels s1 k1) == (sort $ labels s2 k2) && 
+         and (zipWith (\x1 x2 -> kripkeIso x1 k1 x2 k2) suc1 suc2)
+      
