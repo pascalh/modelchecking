@@ -162,16 +162,6 @@ testToTree (Number i) =
 
 instance Arbitrary Term where
   arbitrary = arbSized 20 where
-{-
-  arbitrary = oneof 
-   [ return Unit
-   , Unary <$> arbitrary
-   , Binary <$> arbitrary <*> arbitrary
-   , Nary <$> listOf arbitrary 
-   , Id <$> (listOf1 $ elements $ ['a'..'z']++['A'..'Z'])
-   , Number <$> arbitrary
-   ] where
-  -}
    arbSized s = let s' = s `div` 2 in oneof
     [ return Unit
     , Unary <$> (arbSized (s-1))
